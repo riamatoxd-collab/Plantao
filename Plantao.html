@@ -1,1214 +1,1898 @@
-async function handleLogin() {
-  const rawName = $("loginName").value.trim();
-  const pass = $("loginPass").value.trim();
-  if (!rawName) return showAuthError("Digite seu nome para entrar!");
-  const key = rawName.toLowerCase();
+```html
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>McPlantão Hub — Mapa de Posicionamento Operacional</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        mcred: {
+                            DEFAULT: '#DA291C',
+                            dark: '#B51E13',
+                            light: '#F44336'
+                        },
+                        mcyellow: {
+                            DEFAULT: '#FFC72C',
+                            dark: '#E5AE12',
+                            light: '#FFD966'
+                        },
+                        mcgraphite: {
+                            DEFAULT: '#27251F',
+                            light: '#38352D',
+                            dark: '#181713'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 199, 44, 0.35);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 199, 44, 0.65);
+        }
 
-  const btn = $("btnLoginSubmit");
-  btn.textContent = "ENTRANDO...";
-  btn.disabled = true;
+        /* Animações suaves */
+        .card-transition {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-transition:hover {
+            transform: translateY(-2px);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.22s ease-out forwards;
+        }
+        @keyframes alertPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(218, 41, 28, 0.55); }
+            50% { box-shadow: 0 0 0 6px rgba(218, 41, 28, 0); }
+        }
+        .critical-uncovered {
+            animation: alertPulse 1.8s infinite;
+        }
+    </style>
+</head>
+<body class="bg-stone-100 dark:bg-[#161512] text-mcgraphite dark:text-stone-100 min-h-screen font-sans transition-colors duration-200 selection:bg-mcyellow selection:text-mcgraphite">
 
-  if (!users[key]) {
-    await fetchCloudHistorySafe(true);
-  }
+    <!-- Container de Notificações Toast -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
 
-  btn.textContent = "ENTRAR NO TREINAMENTO 🚀";
-  btn.disabled = false;
+    <!-- Cabeçalho Oficial McDonald's McPlantão Hub -->
+    <header class="sticky top-0 z-30 bg-mcred dark:bg-mcgraphite border-b-4 border-mcyellow shadow-lg">
+        <div class="max-w-[1640px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <!-- Logo Arcos Dourados + Título -->
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-2xl bg-mcred dark:bg-[#DA291C] border-2 border-mcyellow/80 flex items-center justify-center shadow-md shrink-0">
+                    <!-- SVG Arcos Dourados Estilizado -->
+                    <svg viewBox="0 0 48 42" class="w-8 h-8 fill-mcyellow drop-shadow-xs" aria-label="Arcos Dourados">
+                        <path d="M5 38 C5 15, 11 4, 15.5 4 C20 4, 22.5 16, 22.5 34 L25.5 34 C25.5 16, 28 4, 32.5 4 C37 4, 43 15, 43 38 L37.5 38 C37.5 19, 34.5 10, 32.2 10 C29.8 10, 27.2 20, 27.2 38 L20.8 38 C20.8 20, 18.2 10, 15.8 10 C13.5 10, 10.5 19, 10.5 38 Z"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-lg sm:text-xl font-black tracking-tight text-white">
+                            McPlantão <span class="text-mcyellow">Hub</span>
+                        </h1>
+                        <span class="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-mcyellow text-mcgraphite shadow-xs">
+                            Posicionamento Operacional
+                        </span>
+                    </div>
+                    <p class="text-xs text-white/85 dark:text-stone-400 hidden sm:block">
+                        Gerenciamento em Tempo Real de Postos, Breaks, Folgas e Faltas da Equipe
+                    </p>
+                </div>
+            </div>
 
-  if (pass === ADMIN_SECRET_PASS) {
-    if (!users[key]) {
-      users[key] = {
-        name: rawName.toUpperCase(),
-        role: "Treinador",
-        avatar: "👑",
-        password: pass,
-        xp: 0,
-        correctAnswers: 0,
-        hearts: 5,
-        heartsLockUntil: 0,
-        mistakes: [],
-        lastSeen: Date.now(),
-        updatedAt: Date.now()
-      };
-    }
-    users[key]._deleted = false;
-    currentUserKey = key;
-    localStorage.setItem(STORAGE_CURRENT_KEY, key);
-    $("authModal").classList.add("hidden");
-    playHitSuccessSound();
-    syncActiveUserHeartsState();
-    loadNextQuizQuestion();
-    scheduleCloudSync(key, true);
-    return;
-  }
+            <!-- Controles do Topo: Seletor de Turno, Relógio, Postos, WhatsApp, Novo Nome e Tema -->
+            <div class="flex items-center flex-wrap gap-2 sm:gap-2.5 ml-auto">
+                
+                <!-- Seletor de Turno do Restaurante -->
+                <div class="flex items-center bg-mcgraphite/30 dark:bg-stone-800/90 border border-white/20 dark:border-stone-700 rounded-xl px-2.5 py-1.5 gap-2">
+                    <i data-lucide="Flame" class="w-4 h-4 text-mcyellow shrink-0"></i>
+                    <div class="flex flex-col">
+                        <label for="shift-selector" class="text-[9px] uppercase tracking-wider font-bold text-mcyellow leading-none">Turno do Restaurante</label>
+                        <select id="shift-selector" onchange="handleShiftChange(this.value)" class="bg-transparent text-white text-xs font-bold focus:outline-none cursor-pointer pr-1 mt-0.5">
+                            <option value="Abertura / Manhã" class="bg-mcgraphite text-white">☀️ Abertura / Manhã</option>
+                            <option value="Pico Almoço" class="bg-mcgraphite text-white">🍔 Pico Almoço</option>
+                            <option value="Tarde" class="bg-mcgraphite text-white">🍟 Tarde</option>
+                            <option value="Pico Jantar / Noite" class="bg-mcgraphite text-white">🌙 Pico Jantar / Noite</option>
+                            <option value="Madrugada" class="bg-mcgraphite text-white">🦉 Madrugada (24h)</option>
+                        </select>
+                    </div>
+                </div>
 
-  if (!users[key] || users[key]._deleted) {
-    return showAuthError("Conta não encontrada neste aparelho! Clique em 'CRIAR CONTA' acima (ou use a senha ADM).");
-  }
-  if (users[key].password && users[key].password !== pass) {
-    return showAuthError("Senha incorreta! Tente novamente.");
-  }
+                <!-- Relógio Digital em Tempo Real -->
+                <div class="flex items-center gap-2.5 bg-mcgraphite/40 dark:bg-stone-900 border border-white/20 dark:border-stone-700 px-3 py-1.5 rounded-xl">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-mcyellow opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-mcyellow"></span>
+                    </span>
+                    <div class="text-right">
+                        <div id="live-clock" class="font-mono text-sm sm:text-base font-extrabold text-white leading-none">00:00:00</div>
+                        <div id="live-date" class="text-[10px] text-mcyellow font-semibold leading-tight mt-0.5">--/--/----</div>
+                    </div>
+                </div>
 
-  currentUserKey = key;
-  localStorage.setItem(STORAGE_CURRENT_KEY, key);
-  $("authModal").classList.add("hidden");
-  playHitSuccessSound();
-  syncActiveUserHeartsState();
-  loadNextQuizQuestion();
-  scheduleCloudSync(key, true);
-}
+                <!-- Botão Configurar Postos -->
+                <button onclick="openAreasModal()" class="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold bg-white/15 hover:bg-white/25 dark:bg-stone-800 dark:hover:bg-stone-700 text-white border border-white/20 dark:border-stone-700 flex items-center gap-1.5 transition" title="Configurar Postos e Estações do McDonald's">
+                    <i data-lucide="layout-Grid" class="w-4 h-4 text-mcyellow"></i>
+                    <span class="hidden lg:inline">Postos</span>
+                </button>
 
-function logoutUser() {
-  playTabClickSound();
-  currentUserKey = null;
-  localStorage.removeItem(STORAGE_CURRENT_KEY);
-  $("loginPass").value = "";
-  $("authModal").classList.remove("hidden");
-}
+                <!-- Botão Copiar Escala p/ WhatsApp -->
+                <button onclick="copyShiftReport()" class="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400/30 flex items-center gap-1.5 transition shadow-sm" title="Copiar Escala Formatada para WhatsApp">
+                    <i data-lucide="share-2" class="w-4 h-4"></i>
+                    <span class="hidden md:inline">Copiar Escala p/ WhatsApp</span>
+                </button>
 
-function addXp(amount) {
-  if (!currentUserKey || !users[currentUserKey]) {
-    playHitSuccessSound();
-    return;
-  }
-  const oldXp = users[currentUserKey].xp || 0;
-  const newXp = Math.max(0, oldXp + amount);
+                <!-- Botão Adicionar Nome -->
+                <button onclick="openMemberModal()" class="px-3 py-2 sm:px-4 sm:py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-mcyellow hover:bg-mcyellow-light active:bg-mcyellow-dark text-mcgraphite flex items-center gap-1.5 shadow-md transition">
+                    <i data-lucide="user-plus" class="w-4 h-4 stroke-[2.5]"></i>
+                    <span>+ Escalar Nome</span>
+                </button>
 
-  users[currentUserKey].xp = newXp;
-  users[currentUserKey].updatedAt = Date.now();
-  showXpToast(amount);
+                <!-- Alternar Tema Claro / Escuro -->
+                <button onclick="toggleTheme()" class="p-2 rounded-xl bg-mcgraphite/30 dark:bg-stone-800 hover:bg-mcgraphite/50 dark:hover:bg-stone-700 text-mcyellow border border-white/15 dark:border-stone-700 transition" title="Alternar Modo Claro / Escuro">
+                    <i id="theme-icon" data-lucide="sun" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
 
-  const oldLevel = getLevelInfo(oldXp).level;
-  const newLevel = getLevelInfo(newXp).level;
+    <!-- Conteúdo Principal -->
+    <main class="max-w-[1640px] mx-auto px-4 sm:px-6 py-6 space-y-6">
 
-  if (newLevel > oldLevel) {
-    playMcDonaldsJingle();
-  } else {
-    playHitSuccessSound();
-  }
+        <!-- 1. CARDS KPI DO RESTAURANTE (Clicáveis para filtrar) -->
+        <section aria-label="Indicadores do Plantão" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <!-- Total na Escala -->
+            <button onclick="setFilterStatus('ALL')" id="stat-card-ALL" class="text-left p-4 rounded-2xl bg-white dark:bg-mcgraphite border-2 border-mcyellow shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+                <div class="flex items-center justify-between w-full mb-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400">Total na Escala</span>
+                    <div class="w-8 h-8 rounded-xl bg-mcyellow/20 text-mcgraphite dark:text-mcyellow flex items-center justify-center group-hover:scale-110 transition">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span id="count-all" class="text-2xl sm:text-3xl font-black text-mcgraphite dark:text-white">0</span>
+                    <span class="text-[11px] font-bold text-mcred dark:text-mcyellow">Equipe do Turno</span>
+                </div>
+            </button>
 
-  scheduleCloudSync(currentUserKey, false);
-}
+            <!-- Em Posição / Plantão -->
+            <button onclick="setFilterStatus('ACTIVE')" id="stat-card-ACTIVE" class="text-left p-4 rounded-2xl bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+                <div class="flex items-center justify-between w-full mb-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Em Posição (Plantão)</span>
+                    <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span id="count-active" class="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400">0</span>
+                    <span id="pct-active" class="text-[11px] text-stone-500 dark:text-stone-400 font-semibold">Operando agora</span>
+                </div>
+            </button>
 
-function updateHeaderUI() {
-  if (!currentUserKey || !users[currentUserKey]) return;
-  const u = users[currentUserKey];
-  const info = getLevelInfo(u.xp || 0);
+            <!-- Em Break (Pausa/Refeição) -->
+            <button onclick="setFilterStatus('BREAK')" id="stat-card-BREAK" class="text-left p-4 rounded-2xl bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+                <div class="flex items-center justify-between w-full mb-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-amber-600 dark:text-mcyellow">Em Break (Refeição)</span>
+                    <div class="w-8 h-8 rounded-xl bg-mcyellow/20 text-amber-600 dark:text-mcyellow flex items-center justify-center group-hover:scale-110 transition">
+                        <i data-lucide="utensils" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span id="count-break" class="text-2xl sm:text-3xl font-black text-amber-500 dark:text-mcyellow">0</span>
+                    <span class="text-[11px] text-stone-500 dark:text-stone-400 font-semibold">Intervalo cronometrado</span>
+                </div>
+            </button>
 
-  const avatarEl = $("userAvatarDisplay");
-  if (avatarEl) {
-    if (isPhotoAvatar(u.avatar)) {
-      avatarEl.innerHTML = `<img src="${u.avatar}" alt="Foto" class="w-full h-full object-cover" />`;
-    } else {
-      avatarEl.textContent = u.avatar || "🍔";
-    }
-  }
+            <!-- De Folga -->
+            <button onclick="setFilterStatus('OFF')" id="stat-card-OFF" class="text-left p-4 rounded-2xl bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+                <div class="flex items-center justify-between w-full mb-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-sky-600 dark:text-sky-400">De Folga (DSR)</span>
+                    <div class="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition">
+                        <i data-lucide="calendar-off" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span id="count-off" class="text-2xl sm:text-3xl font-black text-sky-600 dark:text-sky-400">0</span>
+                    <span class="text-[11px] text-stone-500 dark:text-stone-400 font-semibold">Descanso da escala</span>
+                </div>
+            </button>
 
-  $("userNameDisplay").textContent = u.name;
-  $("userRoleBadge").textContent = u.role || u.station || "Atendente";
-  $("userXpDisplay").textContent = `${u.xp || 0} XP`;
-  $("userRankTitle").textContent = info.title;
-  $("currentLevelNum").textContent = `Nível ${info.level}`;
-  $("statHitsDisplay").textContent = `${u.correctAnswers || 0} ✅`;
+            <!-- Faltas -->
+            <button onclick="setFilterStatus('ABSENT')" id="stat-card-ABSENT" class="col-span-2 sm:col-span-1 text-left p-4 rounded-2xl bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 shadow-sm hover:shadow-md transition flex flex-col justify-between group">
+                <div class="flex items-center justify-between w-full mb-2">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-mcred dark:text-rose-400">Faltas / Ausências</span>
+                    <div class="w-8 h-8 rounded-xl bg-mcred/15 text-mcred dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition">
+                        <i data-lucide="user-x" class="w-4 h-4"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <span id="count-absent" class="text-2xl sm:text-3xl font-black text-mcred dark:text-rose-400">0</span>
+                    <span class="text-[11px] text-stone-500 dark:text-stone-400 font-semibold">Fora do restaurante</span>
+                </div>
+            </button>
+        </section>
 
-  const progress = Math.min(100, Math.round((((u.xp || 0) - info.min) / (info.max - info.min)) * 100));
-  $("xpProgressBar").style.width = `${Math.max(6, progress)}%`;
+        <!-- 2. PAINEL DE COBERTURA DE POSTOS EM TEMPO REAL -->
+        <section class="bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 rounded-2xl p-4 sm:p-5 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3.5">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-lg bg-mcred text-mcyellow flex items-center justify-center">
+                        <i data-lucide="map-pinned" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xs sm:text-sm font-black uppercase tracking-wider text-mcgraphite dark:text-white flex items-center gap-2">
+                            Cobertura de Postos em Tempo Real
+                            <span id="uncovered-counter-badge" class="hidden text-[10px] px-2 py-0.5 rounded-full bg-mcred text-white font-extrabold animate-pulse">
+                                Postos Críticos Descobertos!
+                            </span>
+                        </h2>
+                        <p class="text-[11px] text-stone-500 dark:text-stone-400">Clique em qualquer posto do McDonald's abaixo para filtrar a equipe posicionada nele</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="setViewMode('kanban-area')" class="text-xs font-bold text-mcred dark:text-mcyellow hover:underline flex items-center gap-1">
+                        <i data-lucide="columns-3" class="w-3.5 h-3.5"></i> Abrir Mapa de Postos
+                    </button>
+                    <button onclick="openAreasModal()" class="text-xs font-semibold text-stone-600 dark:text-stone-300 hover:underline flex items-center gap-1">
+                        <i data-lucide="settings-2" class="w-3.5 h-3.5"></i> Editar Postos
+                    </button>
+                </div>
+            </div>
 
-  if (info.level < 7) {
-    $("nextLevelTarget").textContent = `Faltam ${info.max - (u.xp || 0)} XP para o Nível ${info.level + 1}`;
-  } else {
-    $("nextLevelTarget").textContent = `Patente Máxima Alcançada! 👑`;
-  }
-}
+            <!-- Grid de Estações / Postos com Barra de Capacidade -->
+            <div id="area-distribution-bar" class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2.5"></div>
+        </section>
 
-// =========================================================================
-// CADERNO "REVISAR MINHAS DÚVIDAS"
-// =========================================================================
+        <!-- 3. LAYOUT PRINCIPAL: HUB DE EQUIPE (ESQUERDA) + CONTROLE DE BREAKS & CADASTRO RÁPIDO (DIREITA) -->
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
 
-function getActiveUserMistakes() {
-  if (currentUserKey && users[currentUserKey]) {
-    if (!Array.isArray(users[currentUserKey].mistakes)) users[currentUserKey].mistakes = [];
-    return users[currentUserKey].mistakes;
-  }
-  return JSON.parse(localStorage.getItem("mequi_guest_mistakes") || "[]");
-}
+            <!-- COLUNA PRINCIPAL DO HUB (8 ou 9 colunas em telas grandes) -->
+            <div class="xl:col-span-8 2xl:col-span-9 space-y-4">
 
-function recordMistakeQuestion(qId) {
-  const list = getActiveUserMistakes();
-  if (!list.includes(qId)) {
-    list.push(qId);
-    saveMistakesList(list);
-  }
-}
+                <!-- Barra de Ferramentas: Pesquisa, Filtro de Posto, Modos de Visualização e Status -->
+                <div class="bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 rounded-2xl p-3.5 sm:p-4 shadow-sm space-y-3">
+                    <div class="flex flex-col lg:flex-row gap-3 justify-between">
+                        <!-- Campo de Busca -->
+                        <div class="relative flex-1">
+                            <i data-lucide="search" class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                            <input
+                                type="text"
+                                id="search-input"
+                                oninput="handleSearch(this.value)"
+                                placeholder="Buscar por nome do atendente, cargo (Treinador, Gerente, GEL) ou posto..."
+                                class="w-full pl-10 pr-9 py-2 rounded-xl bg-stone-100 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700 text-sm text-mcgraphite dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-mcyellow transition"
+                            >
+                            <button id="clear-search-btn" onclick="handleSearch('')" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
 
-function removeMistakeQuestion(qId) {
-  const list = getActiveUserMistakes().filter(id => id !== qId);
-  saveMistakesList(list);
-}
+                        <!-- Seletor de Posto e Modos de Visualização -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <!-- Dropdown Filtro de Posto -->
+                            <div class="relative">
+                                <select id="area-filter-select" onchange="setFilterArea(this.value)" class="appearance-none pl-3 pr-8 py-2 rounded-xl bg-stone-100 dark:bg-stone-800/90 border border-stone-200 dark:border-stone-700 text-xs sm:text-sm font-bold text-mcgraphite dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-mcyellow cursor-pointer">
+                                    <option value="ALL">Todos os Postos</option>
+                                </select>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-stone-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                            </div>
 
-function saveMistakesList(list) {
-  if (currentUserKey && users[currentUserKey]) {
-    users[currentUserKey].mistakes = list;
-    users[currentUserKey].updatedAt = Date.now();
-    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-  } else {
-    localStorage.setItem("mequi_guest_mistakes", JSON.stringify(list));
-  }
-  updateMistakesBadge();
-}
+                            <!-- Botões de Modo de Visualização -->
+                            <div class="inline-flex p-1 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
+                                <button onclick="setViewMode('grid')" id="view-btn-grid" class="px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition" title="Visão em Cards da Equipe">
+                                    <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                                    <span class="hidden sm:inline">Cards</span>
+                                </button>
+                                <button onclick="setViewMode('kanban-area')" id="view-btn-kanban-area" class="px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition" title="Mapa de Postos do Restaurante">
+                                    <i data-lucide="columns-3" class="w-3.5 h-3.5"></i>
+                                    <span class="hidden sm:inline">Mapa de Postos</span>
+                                </button>
+                                <button onclick="setViewMode('kanban-status')" id="view-btn-kanban-status" class="px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition" title="Kanban por Status">
+                                    <i data-lucide="kanban" class="w-3.5 h-3.5"></i>
+                                    <span class="hidden sm:inline">Por Status</span>
+                                </button>
+                                <button onclick="setViewMode('list')" id="view-btn-list" class="px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition" title="Lista Compacta">
+                                    <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                                    <span class="hidden sm:inline">Lista</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-function updateMistakesBadge() {
-  const badge = $("mistakesCountBadge");
-  if (!badge) return;
-  const count = getActiveUserMistakes().length;
-  badge.textContent = `${count} pendente${count === 1 ? "" : "s"}`;
-  badge.className = count > 0
-    ? "text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-600 text-white"
-    : "text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-500";
-}
+                    <!-- Abas de Filtro Rápido por Status -->
+                    <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-stone-100 dark:border-stone-800">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <button onclick="setFilterStatus('ALL')" id="filter-pill-ALL" class="px-3 py-1 rounded-lg text-xs font-bold transition">
+                                Todos
+                            </button>
+                            <button onclick="setFilterStatus('ACTIVE')" id="filter-pill-ACTIVE" class="px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Em Posição (Plantão)
+                            </button>
+                            <button onclick="setFilterStatus('BREAK')" id="filter-pill-BREAK" class="px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+                                <span class="w-2 h-2 rounded-full bg-mcyellow"></span> Em Break
+                            </button>
+                            <button onclick="setFilterStatus('OFF')" id="filter-pill-OFF" class="px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+                                <span class="w-2 h-2 rounded-full bg-sky-500"></span> Folga
+                            </button>
+                            <button onclick="setFilterStatus('ABSENT')" id="filter-pill-ABSENT" class="px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition">
+                                <span class="w-2 h-2 rounded-full bg-mcred"></span> Falta
+                            </button>
+                        </div>
 
-function openReviewModal() {
-  playTabClickSound();
-  const mistakes = getActiveUserMistakes();
-  if (mistakes.length === 0) {
-    return alert("🎉 Parabéns! Você não tem nenhuma dúvida pendente. Quando errar alguma questão no Simulado, ela ficará salva aqui para revisão!");
-  }
-  $("reviewMistakesModal").classList.remove("hidden");
-  loadNextReviewQuestion();
-}
+                        <div id="active-filter-summary" class="text-xs text-stone-500 dark:text-stone-400 font-medium">
+                            Mostrando toda a equipe
+                        </div>
+                    </div>
+                </div>
 
-function closeReviewModal() {
-  playTabClickSound();
-  $("reviewMistakesModal").classList.add("hidden");
-}
+                <!-- CONTAINER DINÂMICO DE RENDERIZAÇÃO DA EQUIPE / MAPA DE POSTOS -->
+                <div id="hub-content-container" class="min-h-[420px]"></div>
 
-function loadNextReviewQuestion() {
-  playTabClickSound();
-  const mistakes = getActiveUserMistakes();
-  if (mistakes.length === 0) {
-    playMcDonaldsJingle();
-    alert("✅ Sensacional! Você revisou e zerou todas as suas dúvidas pendentes!");
-    closeReviewModal();
-    return;
-  }
+            </div>
 
-  const randomId = mistakes[Math.floor(Math.random() * mistakes.length)];
-  const item = QUESTIONS_DB.find(q => q.id === randomId) || QUESTIONS_DB[0];
-  currentReviewItem = item;
+            <!-- COLUNA LATERAL DIREITA: CONTROLE DE BREAKS ATIVOS + CADASTRO RÁPIDO + HISTÓRICO -->
+            <aside class="xl:col-span-4 2xl:col-span-3 space-y-5">
 
-  $("reviewMetaBadge").textContent = `Questão #${item.id} • ${item.level}`;
-  $("reviewRemainingBadge").textContent = `Faltam zerar: ${mistakes.length}`;
-  $("reviewQuestionText").textContent = item.q;
-  $("reviewFeedbackBox").classList.add("hidden");
-  $("nextReviewBtn").classList.add("hidden");
+                <!-- PAINEL 1: CONTROLE DE BREAKS ATIVOS (Cronômetro Progressivo + Retorno Rápido) -->
+                <div class="bg-white dark:bg-mcgraphite border-2 border-mcyellow/70 dark:border-mcyellow/50 rounded-2xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-stone-100 dark:border-stone-800">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg bg-mcyellow text-mcgraphite flex items-center justify-center font-bold">
+                                <i data-lucide="timer" class="w-4 h-4"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-black text-mcgraphite dark:text-white leading-tight">Controle de Breaks Ativos</h3>
+                                <p class="text-[10px] text-stone-500 dark:text-stone-400">Alerta amarelo > 15m • Vermelho > 60m</p>
+                            </div>
+                        </div>
+                        <span id="active-breaks-badge" class="text-xs font-black px-2.5 py-0.5 rounded-full bg-mcyellow/20 text-amber-700 dark:text-mcyellow">
+                            0
+                        </span>
+                    </div>
 
-  const shuffled = [...item.w, item.a].sort(() => 0.5 - Math.random());
-  const letters = ["A", "B", "C", "D"];
-  const container = $("reviewOptionsContainer");
-  container.innerHTML = "";
+                    <div id="active-breaks-panel-list" class="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
+                        <!-- Renderizado dinamicamente via JS -->
+                    </div>
+                </div>
 
-  shuffled.forEach((optText, idx) => {
-    const letter = letters[idx];
-    const btn = document.createElement("button");
-    btn.className = "option-btn w-full text-left p-3.5 rounded-2xl font-bold text-xs flex items-center gap-3";
-    btn.innerHTML = `
-      <span class="w-7 h-7 rounded-xl subtle-box font-black text-xs flex items-center justify-center shrink-0">${letter}</span>
-      <span class="flex-1 leading-snug">${optText}</span>
-    `;
-    btn.onclick = () => checkReviewAnswer(btn, optText, item.a, item.id);
-    container.appendChild(btn);
-  });
-}
+                <!-- PAINEL 2: ESCALAR INTEGRANTE RÁPIDO DIRETO NO HUB -->
+                <div class="bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 rounded-2xl p-4 shadow-sm">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-black text-mcgraphite dark:text-white flex items-center gap-2">
+                            <i data-lucide="user-plus" class="w-4 h-4 text-mcred dark:text-mcyellow"></i>
+                            Escalar Colaborador Rápido
+                        </h3>
+                        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-stone-100 dark:bg-stone-800 text-stone-500">Direto no Turno</span>
+                    </div>
+                    <form id="quick-add-form" onsubmit="handleQuickAdd(event)" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-stone-600 dark:text-stone-300 mb-1">Nome do Colaborador *</label>
+                            <input
+                                type="text"
+                                id="quick-name"
+                                required
+                                placeholder="Ex: Matheus Santos"
+                                class="w-full px-3 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-sm text-mcgraphite dark:text-white focus:outline-none focus:ring-2 focus:ring-mcyellow"
+                            >
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs font-bold text-stone-600 dark:text-stone-300 mb-1">Cargo McDonald's</label>
+                                <select
+                                    id="quick-role"
+                                    class="w-full px-2.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs font-semibold text-mcgraphite dark:text-white focus:outline-none focus:ring-2 focus:ring-mcyellow"
+                                >
+                                    <option value="Atendente">Atendente</option>
+                                    <option value="Treinador">Treinador</option>
+                                    <option value="Anfitrião / GEL">Anfitrião / GEL</option>
+                                    <option value="Manutenção">Manutenção</option>
+                                    <option value="Gerente de Plantão">Gerente de Plantão</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-stone-600 dark:text-stone-300 mb-1">Posto / Estação</label>
+                                <select
+                                    id="quick-area"
+                                    class="w-full px-2.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs font-semibold text-mcgraphite dark:text-white focus:outline-none focus:ring-2 focus:ring-mcyellow"
+                                ></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-stone-600 dark:text-stone-300 mb-1">Status Inicial</label>
+                            <div class="grid grid-cols-4 gap-1.5" id="quick-status-group">
+                                <button type="button" onclick="selectQuickStatus('ACTIVE')" data-status="ACTIVE" class="quick-status-btn py-1.5 px-2 rounded-lg text-[11px] font-extrabold border border-emerald-500 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                                    Plantão
+                                </button>
+                                <button type="button" onclick="selectQuickStatus('BREAK')" data-status="BREAK" class="quick-status-btn py-1.5 px-2 rounded-lg text-[11px] font-semibold border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400">
+                                    Break
+                                </button>
+                                <button type="button" onclick="selectQuickStatus('OFF')" data-status="OFF" class="quick-status-btn py-1.5 px-2 rounded-lg text-[11px] font-semibold border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400">
+                                    Folga
+                                </button>
+                                <button type="button" onclick="selectQuickStatus('ABSENT')" data-status="ABSENT" class="quick-status-btn py-1.5 px-2 rounded-lg text-[11px] font-semibold border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400">
+                                    Falta
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full py-2.5 rounded-xl bg-mcred hover:bg-mcred-dark text-white font-extrabold text-xs sm:text-sm shadow-md shadow-mcred/20 flex items-center justify-center gap-1.5 transition">
+                            <i data-lucide="plus-circle" class="w-4 h-4 text-mcyellow"></i>
+                            Posicionar no Plantão
+                        </button>
+                    </form>
+                </div>
 
-function checkReviewAnswer(selectedBtn, chosen, correct, qId) {
-  const allBtns = document.querySelectorAll("#reviewOptionsContainer button");
-  allBtns.forEach(b => b.disabled = true);
+                <!-- PAINEL 3: LOG OPERACIONAL DO TURNO -->
+                <div class="bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 rounded-2xl p-4 shadow-sm flex flex-col max-h-[380px]">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-stone-100 dark:border-stone-800">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="history" class="w-4 h-4 text-mcred dark:text-mcyellow"></i>
+                            <h3 class="text-sm font-black text-mcgraphite dark:text-white">Movimentações do Turno</h3>
+                        </div>
+                        <button onclick="clearLogs()" class="text-[11px] text-stone-400 hover:text-mcred transition font-semibold">
+                            Limpar
+                        </button>
+                    </div>
+                    <div id="activity-log-list" class="space-y-2 overflow-y-auto pr-1 flex-1 text-xs"></div>
+                    <div class="pt-3 mt-3 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-[11px] text-stone-400">
+                        <span>Salvo automaticamente</span>
+                        <button onclick="openResetConfirmModal()" class="text-mcred dark:text-mcyellow hover:underline font-bold">Restaurar Escala Padrão</button>
+                    </div>
+                </div>
 
-  const fb = $("reviewFeedbackBox");
-  fb.classList.remove("hidden");
+            </aside>
+        </div>
+    </main>
 
-  if (chosen === correct) {
-    selectedBtn.className = "anim-pop-correct w-full text-left p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-500/20 font-extrabold text-xs flex items-center gap-3";
-    removeMistakeQuestion(qId);
-    playHitSuccessSound();
-    fb.className = "p-3 rounded-2xl text-xs font-extrabold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30";
-    fb.textContent = "✅ Aprendido! Essa questão saiu da sua lista de dúvidas!";
-  } else {
-    selectedBtn.className = "anim-shake-wrong w-full text-left p-3.5 rounded-2xl border-2 border-red-500 bg-red-500/20 font-extrabold text-xs flex items-center gap-3";
-    playWrongAnswerSound();
-    fb.className = "p-3 rounded-2xl text-xs font-extrabold bg-red-500/15 text-red-500 border border-red-500/30";
-    fb.innerHTML = `❌ O gabarito oficial é:<br><span class="underline mt-1 inline-block">${correct}</span>`;
-  }
+    <!-- MODAL: ADICIONAR / EDITAR COLABORADOR DO MCDONALD'S -->
+    <div id="member-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+        <div class="bg-white dark:bg-mcgraphite border-2 border-mcyellow rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-stone-100 dark:border-stone-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-mcred text-mcyellow flex items-center justify-center font-black">M</div>
+                    <h3 id="member-modal-title" class="text-lg font-black text-mcgraphite dark:text-white">Escalar Colaborador</h3>
+                </div>
+                <button onclick="closeMemberModal()" class="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="member-modal-form" onsubmit="handleMemberModalSubmit(event)" class="space-y-4">
+                <input type="hidden" id="modal-member-id">
+                <div>
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1.5">Nome do Colaborador *</label>
+                    <input type="text" id="modal-member-name" required placeholder="Ex: Lucas Ferreira" class="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-sm text-mcgraphite dark:text-white focus:outline-none focus:ring-2 focus:ring-mcyellow">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1.5">Cargo no Restaurante</label>
+                        <select id="modal-member-role" class="w-full px-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-sm font-semibold text-mcgraphite dark:text-white focus:outline-none focus:ring-2 focus:ring-mcyellow">
+                            <option value="Atendente">Atendente</option>
+                            <option value="Treinador">Treinador</option>
+                            <option value="Anfitrião / GEL">Anfitrião / GEL</option>
+                            <option value="Manutenção">Manutenção</option>
+                            <option value="Gerente de Plantão">Gerente de Plantão</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1.5">Status Atual</label>
+                        <select id="modal-member-status" class="w-full px-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-sm font-semibold text-mcgraphite dark:text-white focus:outline-none focus:ring-2 focus:ring-mcyellow">
+                            <option value="ACTIVE">Em Posição (Plantão)</option>
+                            <option value="BREAK">Em Break (Refeição)</option>
+                            <option value="OFF">De Folga (DSR)</option>
+                            <option value="ABSENT">Falta / Ausência</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1.5">Posto / Área de Posicionamento</label>
+                    <select id="modal-member-area" class="w-full px-3 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-sm font-semibold text-mcgraphite dark:text-white focus:outline-none focus:ring-2 focus:ring-mcyellow"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-stone-500 dark:text-stone-400 mb-1.5">Observação Operacional (Opcional)</label>
+                    <input type="text" id="modal-member-note" placeholder="Ex: Especialista Chapa / Sai às 22h / Apoio Drive" class="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-sm text-mcgraphite dark:text-white focus:outline-none focus:ring-2 focus:ring-mcyellow">
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-stone-100 dark:border-stone-800">
+                    <button type="button" onclick="closeMemberModal()" class="px-4 py-2 rounded-xl text-sm font-bold text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-sm font-extrabold bg-mcred hover:bg-mcred-dark text-white shadow-md transition">Salvar no Plantão</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-  $("nextReviewBtn").classList.remove("hidden");
-}
+    <!-- MODAL: GERENCIAR POSTOS / ESTAÇÕES DO MCDONALD'S -->
+    <div id="areas-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+        <div class="bg-white dark:bg-mcgraphite border-2 border-mcyellow rounded-2xl max-w-md w-full p-6 shadow-2xl animate-fade-in">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="layout-grid" class="w-5 h-5 text-mcred dark:text-mcyellow"></i>
+                    <h3 class="text-lg font-black text-mcgraphite dark:text-white">Postos e Estações do Restaurante</h3>
+                </div>
+                <button onclick="closeAreasModal()" class="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 hover:bg-stone-100 dark:hover:bg-stone-800">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <p class="text-xs text-stone-500 dark:text-stone-400 mb-4">Adicione estações específicas da sua loja (ex: Cabine 2, Bebidas, Estoque) ou gerencie os postos atuais.</p>
+            
+            <form onsubmit="handleAddArea(event)" class="flex gap-2 mb-4">
+                <input type="text" id="new-area-input" required placeholder="Novo posto (ex: Drive Cabine 2, Bebidas)..." class="flex-1 px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-sm text-mcgraphite dark:text-white focus:outline-none focus:ring-2 focus:ring-mcyellow">
+                <button type="submit" class="px-4 py-2 rounded-xl bg-mcyellow hover:bg-mcyellow-light text-mcgraphite text-sm font-extrabold transition flex items-center gap-1">
+                    <i data-lucide="plus" class="w-4 h-4"></i> Criar
+                </button>
+            </form>
 
-// =========================================================================
-// DUELO ONLINE 1 vs 1 COM STATUS ONLINE E HISTÓRICO DE VENCEDORES
-// =========================================================================
+            <div id="areas-modal-list" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
 
-function populateDuelOpponentList() {
-  const select = $("duelOpponentSelect");
-  if (!select) return;
-  const currentVal = select.value;
+            <div class="flex justify-end pt-4 mt-4 border-t border-stone-100 dark:border-stone-800">
+                <button onclick="closeAreasModal()" class="px-4 py-2 rounded-xl text-sm font-bold bg-stone-100 dark:bg-stone-800 text-mcgraphite dark:text-stone-200 hover:bg-stone-200 transition">Concluído</button>
+            </div>
+        </div>
+    </div>
 
-  const now = Date.now();
-  const list = Object.entries(users)
-    .filter(([k, u]) => u && u.name && !u._deleted && k !== currentUserKey)
-    .sort((a, b) => a[1].name.localeCompare(b[1].name));
+    <!-- MODAL DE CONFIRMAÇÃO CUSTOMIZADO -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+        <div class="bg-white dark:bg-mcgraphite border-2 border-mcred rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-fade-in">
+            <div class="w-11 h-11 rounded-full bg-mcred/15 text-mcred flex items-center justify-center mb-4">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+            </div>
+            <h3 id="confirm-modal-title" class="text-base font-black text-mcgraphite dark:text-white mb-1">Confirmar Ação</h3>
+            <p id="confirm-modal-desc" class="text-xs sm:text-sm text-stone-500 dark:text-stone-400 mb-5">Tem certeza que deseja realizar esta ação?</p>
+            <div class="flex items-center justify-end gap-2">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 transition">Cancelar</button>
+                <button id="confirm-modal-action-btn" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-extrabold bg-mcred hover:bg-mcred-dark text-white shadow-sm transition">Confirmar</button>
+            </div>
+        </div>
+    </div>
 
-  select.innerHTML = `<option value="">Selecione quem você quer desafiar...</option>` +
-    list.map(([k, u]) => {
-      const isOnline = (now - (u.lastSeen || 0)) < 25000;
-      const indicator = isOnline ? "🟢 [Online]" : "⚪ [Offline]";
-      return `<option value="${k}">${indicator} ${u.name} (${u.role || 'Atendente'})</option>`;
-    }).join("");
+    <script>
+        // ==========================================
+        // CONFIGURAÇÕES E IDENTIDADE OPERACIONAL MCDONALD'S
+        // ==========================================
+        const STORAGE_KEYS = {
+            MEMBERS: 'mcplantaohub_members_v2',
+            AREAS: 'mcplantaohub_areas_v2',
+            LOGS: 'mcplantaohub_logs_v2',
+            SHIFT: 'mcplantaohub_shift_v2',
+            THEME: 'mcplantaohub_theme_v2'
+        };
 
-  if (currentVal && users[currentVal]) select.value = currentVal;
-}
+        const STATUS_CONFIG = {
+            ACTIVE: {
+                key: 'ACTIVE',
+                label: 'Em Posição (Plantão)',
+                shortLabel: 'Plantão',
+                badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
+                dotClass: 'bg-emerald-500',
+                borderClass: 'border-l-4 border-l-emerald-500',
+                btnActiveClass: 'bg-emerald-600 text-white font-extrabold shadow-xs',
+                icon: 'check-circle-2'
+            },
+            BREAK: {
+                key: 'BREAK',
+                label: 'Em Break (Refeição)',
+                shortLabel: 'Break',
+                badgeClass: 'bg-mcyellow/25 text-amber-800 dark:text-mcyellow border-mcyellow/50',
+                dotClass: 'bg-mcyellow animate-ping',
+                borderClass: 'border-l-4 border-l-mcyellow',
+                btnActiveClass: 'bg-mcyellow text-mcgraphite font-black shadow-xs',
+                icon: 'utensils'
+            },
+            OFF: {
+                key: 'OFF',
+                label: 'De Folga (DSR)',
+                shortLabel: 'Folga',
+                badgeClass: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
+                dotClass: 'bg-sky-500',
+                borderClass: 'border-l-4 border-l-sky-500',
+                btnActiveClass: 'bg-sky-600 text-white font-extrabold shadow-xs',
+                icon: 'calendar-off'
+            },
+            ABSENT: {
+                key: 'ABSENT',
+                label: 'Falta',
+                shortLabel: 'Falta',
+                badgeClass: 'bg-mcred/15 text-mcred dark:text-rose-300 border-mcred/30',
+                dotClass: 'bg-mcred',
+                borderClass: 'border-l-4 border-l-mcred',
+                btnActiveClass: 'bg-mcred text-white font-extrabold shadow-xs',
+                icon: 'user-x'
+            }
+        };
 
-function sendLiveDuelInvite() {
-  playTabClickSound();
-  if (!currentUserKey || !users[currentUserKey]) {
-    return alert("Faça login na sua conta antes de desafiar alguém!");
-  }
-  const targetKey = $("duelOpponentSelect").value;
-  if (!targetKey || !users[targetKey]) {
-    return alert("Selecione na lista qual colega da loja você quer convidar para o duelo!");
-  }
+        // Cores dos cargos McDonald's
+        const ROLE_BADGES = {
+            'Gerente de Plantão': 'bg-mcred text-white font-extrabold',
+            'Treinador': 'bg-mcyellow text-mcgraphite font-extrabold',
+            'Anfitrião / GEL': 'bg-purple-500/20 text-purple-700 dark:text-purple-300 font-bold border border-purple-500/30',
+            'Manutenção': 'bg-amber-700/20 text-amber-700 dark:text-amber-300 font-bold border border-amber-600/30',
+            'Atendente': 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 font-semibold border border-stone-200 dark:border-stone-700'
+        };
 
-  const me = users[currentUserKey];
-  const opp = users[targetKey];
-  const duelId = "duel_" + Date.now() + "_" + Math.random().toString(16).substring(2, 6);
+        // Postos Oficiais McDonald's e metadados de capacidade recomendada e criticidade
+        const STATION_METADATA = {
+            'Cozinha / Chapa (Grill)': { emoji: '🥩', target: 2, critical: true },
+            'Linha / Montagem (BOP)': { emoji: '🍔', target: 3, critical: true },
+            'McFritas / Fritadeira': { emoji: '🍟', target: 1, critical: true },
+            'Drive-Thru (Cabine / Entrega)': { emoji: '🚗', target: 2, critical: true },
+            'Balcão / Caixa (Front)': { emoji: '🧾', target: 2, critical: true },
+            'McDelivery (Expedição)': { emoji: '🛵', target: 2, critical: false },
+            'Quiosque / McCafé & Sobremesas': { emoji: '🍦', target: 1, critical: false },
+            'Salão / Lobby': { emoji: '🧹', target: 1, critical: false }
+        };
 
-  activeDuel = {
-    duelId: duelId,
-    isHost: true,
-    hostKey: currentUserKey,
-    hostName: me.name,
-    hostAvatar: me.avatar || "🍔",
-    guestKey: targetKey,
-    guestName: opp.name,
-    guestAvatar: opp.avatar || "🍟",
-    scoreHost: 0,
-    scoreGuest: 0,
-    round: 0,
-    status: "waiting"
-  };
+        const DEFAULT_AREAS = Object.keys(STATION_METADATA);
 
-  openDuelArenaUI();
-  $("duelWaitingBox").classList.remove("hidden");
-  $("duelQuestionArea").classList.add("hidden");
-  $("duelWinnerBox").classList.add("hidden");
-  $("duelWaitingText").textContent = `Convite enviado! Aguardando ${opp.name} aceitar no celular dele(a)...`;
+        const DEFAULT_MEMBERS = [
+            { id: 'mc1', name: 'Rodrigo Almeida', role: 'Gerente de Plantão', area: 'Balcão / Caixa (Front)', status: 'ACTIVE', breakStart: null, note: 'Gerente responsável pelo turno', updatedAt: Date.now() - 7200000 },
+            { id: 'mc2', name: 'Larissa Ferreira', role: 'Treinador', area: 'Linha / Montagem (BOP)', status: 'ACTIVE', breakStart: null, note: 'Líder da Linha 1 e Iniciadora', updatedAt: Date.now() - 5400000 },
+            { id: 'mc3', name: 'Gabriel Oliveira', role: 'Atendente', area: 'Cozinha / Chapa (Grill)', status: 'ACTIVE', breakStart: null, note: 'Chapa Carnes 10:1 e 4:1', updatedAt: Date.now() - 4800000 },
+            { id: 'mc4', name: 'Camila Rodrigues', role: 'Atendente', area: 'Cozinha / Chapa (Grill)', status: 'ACTIVE', breakStart: null, note: 'Fritadeira de Empanados / Chicken', updatedAt: Date.now() - 4200000 },
+            { id: 'mc5', name: 'Vitor Hugo Santos', role: 'Atendente', area: 'Linha / Montagem (BOP)', status: 'ACTIVE', breakStart: null, note: 'Finalizador BOP', updatedAt: Date.now() - 3900000 },
+            { id: 'mc6', name: 'Beatriz Nascimento', role: 'Atendente', area: 'McFritas / Fritadeira', status: 'ACTIVE', breakStart: null, note: 'Posto de Batatas no Pico', updatedAt: Date.now() - 3600000 },
+            { id: 'mc7', name: 'Felipe Costa', role: 'Treinador', area: 'Drive-Thru (Cabine / Entrega)', status: 'ACTIVE', breakStart: null, note: 'Apresentador Janela 2 Drive', updatedAt: Date.now() - 3100000 },
+            { id: 'mc8', name: 'Amanda Ribeiro', role: 'Atendente', area: 'Drive-Thru (Cabine / Entrega)', status: 'ACTIVE', breakStart: null, note: 'Pedido e Caixa Cabine 1', updatedAt: Date.now() - 2900000 },
+            { id: 'mc9', name: 'Lucas Martins', role: 'Atendente', area: 'McDelivery (Expedição)', status: 'ACTIVE', breakStart: null, note: 'Conferência e Lacre iFood/App', updatedAt: Date.now() - 2500000 },
+            { id: 'mc10', name: 'Juliana Cavalcanti', role: 'Anfitrião / GEL', area: 'Salão / Lobby', status: 'ACTIVE', breakStart: null, note: 'Apoio Totens de Autoatendimento', updatedAt: Date.now() - 2100000 },
+            { id: 'mc11', name: 'Thiago Barbosa', role: 'Atendente', area: 'Quiosque / McCafé & Sobremesas', status: 'ACTIVE', breakStart: null, note: 'Casquinhas, McFlurry e McCafé', updatedAt: Date.now() - 1800000 },
+            { id: 'mc12', name: 'Mariana Silva', role: 'Atendente', area: 'Balcão / Caixa (Front)', status: 'BREAK', breakStart: Date.now() - (18 * 60 * 1000 + 15000), note: 'Refeição no Break Room', updatedAt: Date.now() - 1095000 },
+            { id: 'mc13', name: 'Pedro Henrique Gomes', role: 'Atendente', area: 'Linha / Montagem (BOP)', status: 'BREAK', breakStart: Date.now() - (7 * 60 * 1000 + 40000), note: 'Pausa 15 min', updatedAt: Date.now() - 460000 },
+            { id: 'mc14', name: 'Fernanda Souza', role: 'Manutenção', area: 'Salão / Lobby', status: 'OFF', breakStart: null, note: 'Folga semanal na escala', updatedAt: Date.now() - 8000000 },
+            { id: 'mc15', name: 'Diego Pereira', role: 'Atendente', area: 'McDelivery (Expedição)', status: 'ABSENT', breakStart: null, note: 'Avisou atraso / falta', updatedAt: Date.now() - 6000000 }
+        ];
 
-  publishDuelPacket({
-    type: "invite",
-    duelId: duelId,
-    hostKey: currentUserKey,
-    hostName: me.name,
-    hostAvatar: me.avatar || "🍔",
-    guestKey: targetKey,
-    guestName: opp.name,
-    guestAvatar: opp.avatar || "🍟"
-  });
-}
+        // Estado da Aplicação
+        let state = {
+            members: [],
+            areas: [],
+            logs: [],
+            currentShift: 'Pico Jantar / Noite',
+            filterStatus: 'ALL',
+            filterArea: 'ALL',
+            searchQuery: '',
+            viewMode: 'grid', // 'grid' | 'kanban-area' | 'kanban-status' | 'list'
+            quickAddStatus: 'ACTIVE'
+        };
 
-function sendDuelInviteWhatsApp() {
-  playTabClickSound();
-  if (!activeDuel) return;
-  const link = `${window.location.origin}${window.location.pathname}`;
-  const text = `⚔️ *DESAFIO 1 vs 1 — OLIMPÍADAS DO BÁSICO*\n🔥 *${activeDuel.hostName}* está te chamando para um Duelo ao vivo agora!\n\n📲 Abra o aplicativo para aceitar o convite: ${link}`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-}
+        // ==========================================
+        // INICIALIZAÇÃO E LOCALSTORAGE
+        // ==========================================
+        function initApp() {
+            loadStateFromStorage();
+            initTheme();
+            renderAreaSelectors();
+            syncShiftSelector();
+            renderAll();
+            startRealtimeLoops();
+            lucide.createIcons();
+        }
 
-function handleIncomingDuelPacket(pkt) {
-  if (!pkt || !pkt.type) return;
+        function getAutoShiftByHour() {
+            const h = new Date().getHours();
+            if (h >= 6 && h < 11) return 'Abertura / Manhã';
+            if (h >= 11 && h < 15) return 'Pico Almoço';
+            if (h >= 15 && h < 18) return 'Tarde';
+            if (h >= 18 && h <= 23) return 'Pico Jantar / Noite';
+            return 'Madrugada';
+        }
 
-  if (pkt.type === "invite" && pkt.guestKey === currentUserKey) {
-    if (activeDuel) return;
-    pendingDuelInvite = pkt;
-    playHitSuccessSound();
-    $("inviteFromNameDisplay").textContent = pkt.hostName;
-    $("duelInvitePopup").classList.remove("hidden");
-    return;
-  }
+        function loadStateFromStorage() {
+            try {
+                const savedAreas = localStorage.getItem(STORAGE_KEYS.AREAS);
+                state.areas = savedAreas ? JSON.parse(savedAreas) : [...DEFAULT_AREAS];
 
-  if (!activeDuel || pkt.duelId !== activeDuel.duelId) return;
+                const savedMembers = localStorage.getItem(STORAGE_KEYS.MEMBERS);
+                state.members = savedMembers ? JSON.parse(savedMembers) : JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
 
-  if (pkt.type === "decline") {
-    playWrongAnswerSound();
-    alert(`❌ ${activeDuel.guestName} recusou o convite de duelo no momento.`);
-    leaveActiveDuel(false);
-    return;
-  }
+                const savedShift = localStorage.getItem(STORAGE_KEYS.SHIFT);
+                state.currentShift = savedShift || getAutoShiftByHour();
 
-  if (pkt.type === "accept" && activeDuel.isHost && activeDuel.status === "waiting") {
-    activeDuel.status = "playing";
-    hostStartNextDuelRound();
-    return;
-  }
+                const savedLogs = localStorage.getItem(STORAGE_KEYS.LOGS);
+                if (savedLogs) {
+                    state.logs = JSON.parse(savedLogs);
+                } else {
+                    state.logs = [
+                        { id: 'l1', time: formatTimeShort(new Date()), text: 'Mapa de Posicionamento McPlantão Hub carregado.', type: 'info' },
+                        { id: 'l2', time: formatTimeShort(new Date(Date.now() - 460000)), text: 'Pedro Henrique Gomes saiu para Break (Linha / Montagem).', type: 'break' },
+                        { id: 'l3', time: formatTimeShort(new Date(Date.now() - 1095000)), text: 'Mariana Silva iniciou horário de refeição/Break.', type: 'break' }
+                    ];
+                }
+            } catch (e) {
+                state.areas = [...DEFAULT_AREAS];
+                state.members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
+                state.currentShift = getAutoShiftByHour();
+                state.logs = [];
+            }
+        }
 
-  if (pkt.type === "question") {
-    activeDuel.status = "playing";
-    activeDuel.round = pkt.round;
-    activeDuel.scoreHost = pkt.scoreHost;
-    activeDuel.scoreGuest = pkt.scoreGuest;
-    activeDuel.currentQuestion = pkt.question;
-    activeDuel.roundResolved = false;
-    activeDuel.lockedPlayers = {};
-    playCardFlipSound();
-    renderDuelRoundUI();
-    return;
-  }
+        function saveStateToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(state.members));
+                localStorage.setItem(STORAGE_KEYS.AREAS, JSON.stringify(state.areas));
+                localStorage.setItem(STORAGE_KEYS.SHIFT, state.currentShift);
+                localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(state.logs.slice(0, 60)));
+            } catch (e) {
+                console.error('Erro ao salvar estado:', e);
+            }
+        }
 
-  if (pkt.type === "answer" && activeDuel.status === "playing" && !activeDuel.roundResolved) {
-    if (pkt.isCorrect) {
-      activeDuel.roundResolved = true;
-      if (pkt.playerKey === activeDuel.hostKey) activeDuel.scoreHost++;
-      else activeDuel.scoreGuest++;
+        function syncShiftSelector() {
+            const sel = document.getElementById('shift-selector');
+            if (sel) sel.value = state.currentShift;
+        }
 
-      updateDuelScoreboardUI();
-      playHitSuccessSound();
-      showDuelBanner(`⚡ ${pkt.playerName} acertou primeiro e marcou +1 ponto!`, "emerald");
+        function handleShiftChange(newShift) {
+            state.currentShift = newShift;
+            addLog(`Turno do restaurante alterado para: ${newShift}.`, 'info');
+            showToast(`🍔 Turno ativo: ${newShift}`, 'yellow');
+            saveStateToStorage();
+            renderActivityLogs();
+        }
 
-      if (activeDuel.isHost) {
-        setTimeout(() => {
-          if (!activeDuel) return;
-          if (activeDuel.scoreHost >= 5 || activeDuel.scoreGuest >= 5) {
-            const winnerName = activeDuel.scoreHost >= 5 ? activeDuel.hostName : activeDuel.guestName;
-            publishDuelPacket({
-              type: "finish",
-              duelId: activeDuel.duelId,
-              winnerName: winnerName,
-              scoreHost: activeDuel.scoreHost,
-              scoreGuest: activeDuel.scoreGuest
+        // ==========================================
+        // RELÓGIO E CRONÔMETROS DE BREAK (ALERTA 15M / 60M)
+        // ==========================================
+        function startRealtimeLoops() {
+            updateClockAndTimers();
+            setInterval(updateClockAndTimers, 1000);
+        }
+
+        function updateClockAndTimers() {
+            const now = new Date();
+            const clockEl = document.getElementById('live-clock');
+            const dateEl = document.getElementById('live-date');
+
+            if (clockEl) {
+                clockEl.textContent = now.toLocaleTimeString('pt-BR', { hour12: false });
+            }
+            if (dateEl) {
+                dateEl.textContent = now.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+            }
+
+            // Atualiza todos os cronômetros de Break em tempo real
+            const breakTimers = document.querySelectorAll('[data-break-start]');
+            breakTimers.forEach(el => {
+                const startMs = parseInt(el.getAttribute('data-break-start'), 10);
+                if (!startMs) return;
+                const diffSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+                el.textContent = formatDuration(diffSeconds);
+
+                const badgeWrapper = el.closest('[data-break-badge]');
+                if (diffSeconds >= 3600) {
+                    // Mais de 60 minutos (Alerta Vermelho)
+                    el.className = 'text-white font-black';
+                    if (badgeWrapper) {
+                        badgeWrapper.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-mcred text-white text-xs font-mono font-extrabold shadow-xs animate-pulse';
+                    }
+                } else if (diffSeconds >= 900) {
+                    // Mais de 15 minutos (Alerta Amarelo Ouro Forte)
+                    el.className = 'text-mcgraphite font-black';
+                    if (badgeWrapper) {
+                        badgeWrapper.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-mcyellow text-mcgraphite border border-amber-500 text-xs font-mono font-extrabold shadow-xs';
+                    }
+                }
             });
-          } else {
-            hostStartNextDuelRound();
-          }
-        }, 1900);
-      }
-    } else {
-      activeDuel.lockedPlayers[pkt.playerKey] = true;
-      playWrongAnswerSound();
-      if (pkt.playerKey === currentUserKey) {
-        showDuelBanner(`❌ Você errou! Aguardando tentativa do oponente...`, "red");
-      } else {
-        showDuelBanner(`🔥 ${pkt.playerName} errou! Responda com calma para ganhar o ponto!`, "amber");
-      }
-
-      if (activeDuel.lockedPlayers[activeDuel.hostKey] && activeDuel.lockedPlayers[activeDuel.guestKey]) {
-        activeDuel.roundResolved = true;
-        showDuelBanner(`😅 Nenhum dos dois acertou! Próxima pergunta...`, "red");
-        if (activeDuel.isHost) {
-          setTimeout(() => { if (activeDuel) hostStartNextDuelRound(); }, 1900);
         }
-      }
-    }
-    return;
-  }
 
-  if (pkt.type === "finish") {
-    activeDuel.scoreHost = pkt.scoreHost;
-    activeDuel.scoreGuest = pkt.scoreGuest;
-    updateDuelScoreboardUI();
-    playMcDonaldsJingle();
-    $("duelQuestionArea").classList.add("hidden");
-    $("duelWinnerBox").classList.remove("hidden");
-    $("duelWinnerTitle").textContent = `🏆 ${pkt.winnerName} Venceu!`;
-    $("duelWinnerSub").textContent = `Placar Final: ${activeDuel.hostName} (${pkt.scoreHost}) x (${pkt.scoreGuest}) ${activeDuel.guestName}`;
-
-    saveDuelHistoryRecord({
-      p1: activeDuel.hostName,
-      p2: activeDuel.guestName,
-      score1: pkt.scoreHost,
-      score2: pkt.scoreGuest,
-      winner: pkt.winnerName,
-      date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    });
-    return;
-  }
-
-  if (pkt.type === "leave" && pkt.playerKey !== currentUserKey) {
-    alert("O seu oponente saiu da Arena de Duelo.");
-    leaveActiveDuel(false);
-  }
-}
-
-function saveDuelHistoryRecord(record) {
-  duelHistoryList.unshift(record);
-  if (duelHistoryList.length > 5) duelHistoryList.pop();
-  localStorage.setItem(STORAGE_DUEL_HISTORY, JSON.stringify(duelHistoryList));
-  renderDuelHistory();
-}
-
-function renderDuelHistory() {
-  const container = $("duelHistoryContainer");
-  if (!container) return;
-
-  if (duelHistoryList.length === 0) {
-    container.innerHTML = `<div class="p-3 rounded-xl subtle-box text-xs text-center text-muted-pro">Nenhum duelo finalizado recentemente. Desafie alguém na aba Simulado!</div>`;
-    return;
-  }
-
-  container.innerHTML = duelHistoryList.map(h => `
-    <div class="flex items-center justify-between p-2.5 rounded-xl subtle-box text-xs font-bold">
-      <div class="flex items-center gap-2">
-        <span>⚔️</span>
-        <span><strong>${h.p1}</strong> (${h.score1}) x (${h.score2}) <strong>${h.p2}</strong></span>
-      </div>
-      <div class="text-right">
-        <span class="text-amber-500 font-black">🏆 ${h.winner}</span>
-        <span class="block text-[9px] text-muted-pro">${h.date}</span>
-      </div>
-    </div>
-  `).join("");
-}
-
-function acceptDuelInvite() {
-  playTabClickSound();
-  if (!pendingDuelInvite) return;
-  $("duelInvitePopup").classList.add("hidden");
-
-  activeDuel = {
-    duelId: pendingDuelInvite.duelId,
-    isHost: false,
-    hostKey: pendingDuelInvite.hostKey,
-    hostName: pendingDuelInvite.hostName,
-    hostAvatar: pendingDuelInvite.hostAvatar || "🍔",
-    guestKey: pendingDuelInvite.guestKey,
-    guestName: pendingDuelInvite.guestName,
-    guestAvatar: pendingDuelInvite.guestAvatar || "🍟",
-    scoreHost: 0,
-    scoreGuest: 0,
-    round: 0,
-    status: "playing"
-  };
-  pendingDuelInvite = null;
-
-  openDuelArenaUI();
-  $("duelWaitingBox").classList.remove("hidden");
-  $("duelWaitingText").textContent = "Conectando e sorteando a 1ª pergunta...";
-
-  publishDuelPacket({ type: "accept", duelId: activeDuel.duelId });
-}
-
-function declineDuelInvite() {
-  playTabClickSound();
-  if (!pendingDuelInvite) return;
-  $("duelInvitePopup").classList.add("hidden");
-  publishDuelPacket({ type: "decline", duelId: pendingDuelInvite.duelId });
-  pendingDuelInvite = null;
-}
-
-function openDuelArenaUI() {
-  if (!activeDuel) return;
-  $("duelArenaModal").classList.remove("hidden");
-  updateDuelScoreboardUI();
-}
-
-function updateDuelScoreboardUI() {
-  if (!activeDuel) return;
-  const p1Av = $("duelP1Avatar");
-  const p2Av = $("duelP2Avatar");
-  if (p1Av) p1Av.innerHTML = isPhotoAvatar(activeDuel.hostAvatar) ? `<img src="${activeDuel.hostAvatar}" class="w-9 h-9 rounded-xl object-cover border border-[#FFC72C] mx-auto" />` : activeDuel.hostAvatar;
-  if (p2Av) p2Av.innerHTML = isPhotoAvatar(activeDuel.guestAvatar) ? `<img src="${activeDuel.guestAvatar}" class="w-9 h-9 rounded-xl object-cover border border-[#FFC72C] mx-auto" />` : activeDuel.guestAvatar;
-
-  $("duelP1Name").textContent = activeDuel.hostName;
-  $("duelP1Score").textContent = activeDuel.scoreHost;
-  $("duelP2Name").textContent = activeDuel.guestName;
-  $("duelP2Score").textContent = activeDuel.scoreGuest;
-  $("duelRoundBadge").textContent = `Rodada #${activeDuel.round || 1}`;
-}
-
-function hostStartNextDuelRound() {
-  if (!activeDuel || !activeDuel.isHost) return;
-  const nextRound = (activeDuel.round || 0) + 1;
-  const randomItem = QUESTIONS_DB[Math.floor(Math.random() * QUESTIONS_DB.length)];
-  const shuffledOptions = [...randomItem.w, randomItem.a].sort(() => 0.5 - Math.random());
-
-  publishDuelPacket({
-    type: "question",
-    duelId: activeDuel.duelId,
-    round: nextRound,
-    scoreHost: activeDuel.scoreHost,
-    scoreGuest: activeDuel.scoreGuest,
-    question: { id: randomItem.id, level: randomItem.level, q: randomItem.q, a: randomItem.a, options: shuffledOptions }
-  });
-}
-
-function renderDuelRoundUI() {
-  if (!activeDuel || !activeDuel.currentQuestion) return;
-  $("duelWaitingBox").classList.add("hidden");
-  $("duelWinnerBox").classList.add("hidden");
-  $("duelQuestionArea").classList.remove("hidden");
-  $("duelStatusBanner").classList.add("hidden");
-
-  updateDuelScoreboardUI();
-
-  const qObj = activeDuel.currentQuestion;
-  $("duelQuestionText").textContent = `(#${qObj.id}) ${qObj.q}`;
-
-  const letters = ["A", "B", "C", "D"];
-  const container = $("duelOptionsContainer");
-  container.innerHTML = "";
-
-  qObj.options.forEach((optText, idx) => {
-    const letter = letters[idx];
-    const btn = document.createElement("button");
-    btn.className = "option-btn w-full text-left p-3.5 rounded-2xl font-bold text-xs flex items-center gap-3";
-    btn.innerHTML = `
-      <span class="w-7 h-7 rounded-xl subtle-box font-black text-xs flex items-center justify-center shrink-0">${letter}</span>
-      <span class="flex-1 leading-snug">${optText}</span>
-    `;
-    btn.onclick = () => submitDuelAnswer(btn, optText, qObj.a);
-    container.appendChild(btn);
-  });
-}
-
-function submitDuelAnswer(selectedBtn, chosen, correct) {
-  if (!activeDuel || activeDuel.roundResolved) return;
-  if (activeDuel.lockedPlayers && activeDuel.lockedPlayers[currentUserKey]) return;
-
-  const allBtns = document.querySelectorAll("#duelOptionsContainer button");
-  allBtns.forEach(b => b.disabled = true);
-
-  const isCorrect = (chosen === correct);
-  selectedBtn.className = isCorrect
-    ? "anim-pop-correct w-full text-left p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-500/20 font-extrabold text-xs flex items-center gap-3"
-    : "anim-shake-wrong w-full text-left p-3.5 rounded-2xl border-2 border-red-500 bg-red-500/20 font-extrabold text-xs flex items-center gap-3";
-
-  const myName = (users[currentUserKey] && users[currentUserKey].name) || "Jogador";
-  publishDuelPacket({
-    type: "answer",
-    duelId: activeDuel.duelId,
-    playerKey: currentUserKey,
-    playerName: myName,
-    isCorrect: isCorrect
-  });
-}
-
-function showDuelBanner(msg, color) {
-  const banner = $("duelStatusBanner");
-  banner.classList.remove("hidden");
-  banner.className = color === "emerald"
-    ? "p-3 rounded-2xl text-xs font-extrabold text-center bg-emerald-500/20 text-emerald-500 border border-emerald-500/40"
-    : color === "amber"
-      ? "p-3 rounded-2xl text-xs font-extrabold text-center bg-amber-500/20 text-amber-500 border border-amber-500/40"
-      : "p-3 rounded-2xl text-xs font-extrabold text-center bg-red-500/20 text-red-500 border border-red-500/40";
-  banner.textContent = msg;
-}
-
-function leaveActiveDuel(notifyOther = true) {
-  playTabClickSound();
-  if (activeDuel && notifyOther) {
-    publishDuelPacket({ type: "leave", duelId: activeDuel.duelId, playerKey: currentUserKey });
-  }
-  activeDuel = null;
-  $("duelArenaModal").classList.add("hidden");
-}
-
-// =========================================================================
-// CORAÇÕES E RECARGA DE 10 MINUTOS
-// =========================================================================
-
-function getActiveHeartsLockUntil() {
-  if (currentUserKey && users[currentUserKey]) return users[currentUserKey].heartsLockUntil || 0;
-  return parseInt(localStorage.getItem("mequi_guest_hearts_lock") || "0", 10);
-}
-
-function setActiveHeartsState(heartsVal, lockUntilVal) {
-  currentHearts = heartsVal;
-  if (currentUserKey && users[currentUserKey]) {
-    users[currentUserKey].hearts = heartsVal;
-    users[currentUserKey].heartsLockUntil = lockUntilVal;
-    users[currentUserKey].updatedAt = Date.now();
-    localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
-  } else {
-    localStorage.setItem("mequi_guest_hearts", String(heartsVal));
-    localStorage.setItem("mequi_guest_hearts_lock", String(lockUntilVal));
-  }
-  updateHeartsDisplay();
-}
-
-function syncActiveUserHeartsState() {
-  const now = Date.now();
-  let lockUntil = getActiveHeartsLockUntil();
-
-  if (currentUserKey && users[currentUserKey]) {
-    currentHearts = users[currentUserKey].hearts !== undefined ? users[currentUserKey].hearts : 5;
-  } else {
-    currentHearts = parseInt(localStorage.getItem("mequi_guest_hearts") || "5", 10);
-  }
-
-  if (lockUntil > 0 && now >= lockUntil) {
-    setActiveHeartsState(5, 0);
-    lockUntil = 0;
-  }
-
-  updateHeartsDisplay();
-  checkAndRenderCooldownScreen();
-}
-
-function formatTimeRemaining(ms) {
-  const totalSec = Math.max(0, Math.ceil(ms / 1000));
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
-
-function checkAndRenderCooldownScreen() {
-  const lockUntil = getActiveHeartsLockUntil();
-  const now = Date.now();
-  const cooldownBox = $("quizCooldownBox");
-  const activeArea = $("quizActiveArea");
-  const timerDisplay = $("cooldownTimerDisplay");
-
-  if (lockUntil > now) {
-    cooldownBox.classList.remove("hidden");
-    activeArea.classList.add("hidden");
-    timerDisplay.textContent = formatTimeRemaining(lockUntil - now);
-
-    if (!cooldownIntervalId) {
-      cooldownIntervalId = setInterval(() => {
-        const rem = getActiveHeartsLockUntil() - Date.now();
-        if (rem <= 0) {
-          clearInterval(cooldownIntervalId);
-          cooldownIntervalId = null;
-          setActiveHeartsState(5, 0);
-          cooldownBox.classList.add("hidden");
-          activeArea.classList.remove("hidden");
-          loadNextQuizQuestion();
-          if (currentUserKey) scheduleCloudSync(currentUserKey, true);
-        } else {
-          timerDisplay.textContent = formatTimeRemaining(rem);
+        function formatDuration(totalSeconds) {
+            const hrs = Math.floor(totalSeconds / 3600);
+            const mins = Math.floor((totalSeconds % 3600) / 60);
+            const secs = totalSeconds % 60;
+            const pad = n => String(n).padStart(2, '0');
+            if (hrs > 0) return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+            return `${pad(mins)}:${pad(secs)}`;
         }
-      }, 1000);
-    }
-    return true;
-  } else {
-    if (cooldownIntervalId) {
-      clearInterval(cooldownIntervalId);
-      cooldownIntervalId = null;
-    }
-    if (currentHearts <= 0) setActiveHeartsState(5, 0);
-    cooldownBox.classList.add("hidden");
-    activeArea.classList.remove("hidden");
-    return false;
-  }
-}
 
-function changeQuizLevelFilter() {
-  playTabClickSound();
-  currentStreak = 0;
-  loadNextQuizQuestion();
-}
+        function formatTimeShort(dateObj) {
+            return dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
 
-function updateHeartsDisplay() {
-  const safeHearts = Math.max(0, Math.min(5, currentHearts));
-  const el = $("quizHeartsInfo");
-  if (el) el.textContent = "❤️".repeat(safeHearts) + "🖤".repeat(5 - safeHearts);
-}
+        // ==========================================
+        // TROCA DE STATUS E REMANEJAMENTO DE POSTO
+        // ==========================================
+        function changeMemberStatus(memberId, newStatus) {
+            const member = state.members.find(m => m.id === memberId);
+            if (!member || member.status === newStatus) return;
 
-function loadNextQuizQuestion() {
-  playTabClickSound();
-  syncActiveUserHeartsState();
-  if (checkAndRenderCooldownScreen()) return;
+            const oldStatusLabel = STATUS_CONFIG[member.status].shortLabel;
+            const newStatusLabel = STATUS_CONFIG[newStatus].shortLabel;
 
-  const levelFilter = $("quizLevelFilter").value;
-  const pool = levelFilter === "ALL" ? QUESTIONS_DB : QUESTIONS_DB.filter(item => item.level === levelFilter);
-  const randomItem = pool[Math.floor(Math.random() * pool.length)];
-  currentQuizQuestionId = randomItem.id;
+            let breakDurationNote = '';
+            if (member.status === 'BREAK' && member.breakStart) {
+                const secs = Math.max(0, Math.floor((Date.now() - member.breakStart) / 1000));
+                breakDurationNote = ` (após ${formatDuration(secs)} de Break)`;
+            }
 
-  $("quizQuestionMeta").textContent = `Questão #${randomItem.id} • Nível ${randomItem.level}`;
-  $("statStreakDisplay").textContent = `${currentStreak} 🔥`;
-  $("quizQuestionText").textContent = randomItem.q;
-  $("quizFeedback").classList.add("hidden");
-  $("nextQuizBtn").classList.add("hidden");
+            member.status = newStatus;
+            member.updatedAt = Date.now();
 
-  const wrongChoices = (randomItem.w && randomItem.w.length === 3)
-    ? [...randomItem.w]
-    : QUESTIONS_DB.filter(item => item.id !== randomItem.id).sort(() => 0.5 - Math.random()).slice(0, 3).map(item => item.a);
+            if (newStatus === 'BREAK') {
+                member.breakStart = Date.now();
+                addLog(`${member.name} saiu para Break (posto: ${member.area}).`, 'break');
+                showToast(`🍟 ${member.name} iniciou Break! Cronômetro ativado.`, 'yellow');
+            } else if (newStatus === 'ACTIVE') {
+                member.breakStart = null;
+                addLog(`${member.name} assumiu posição em ${member.area}${breakDurationNote}.`, 'active');
+                showToast(`✅ ${member.name} está Em Posição em ${member.area}.`, 'emerald');
+            } else {
+                member.breakStart = null;
+                addLog(`${member.name} mudou de ${oldStatusLabel} para ${newStatusLabel}.`, newStatus === 'ABSENT' ? 'absent' : 'info');
+                showToast(`${member.name} marcado(a) como ${STATUS_CONFIG[newStatus].label}.`, newStatus === 'ABSENT' ? 'red' : 'dark');
+            }
 
-  const shuffledOptions = [...wrongChoices, randomItem.a].sort(() => 0.5 - Math.random());
-  const letters = ["A", "B", "C", "D"];
-  const container = $("quizOptions");
-  container.innerHTML = "";
+            saveStateToStorage();
+            renderAll();
+        }
 
-  shuffledOptions.forEach((optText, idx) => {
-    const letter = letters[idx];
-    const btn = document.createElement("button");
-    btn.style.animationDelay = `${idx * 40}ms`;
-    btn.className = "option-btn w-full text-left p-3.5 rounded-2xl font-bold text-xs flex items-center gap-3";
-    btn.innerHTML = `
-      <span class="w-7 h-7 rounded-xl subtle-box font-black text-xs flex items-center justify-center shrink-0">${letter}</span>
-      <span class="flex-1 leading-snug">${optText}</span>
-    `;
-    btn.onclick = () => checkQuizAnswer(btn, optText, randomItem.a, letter);
-    container.appendChild(btn);
-  });
-}
+        function changeMemberArea(memberId, newArea) {
+            const member = state.members.find(m => m.id === memberId);
+            if (!member || member.area === newArea) return;
 
-function checkQuizAnswer(selectedBtn, chosen, correct, letter) {
-  const allBtns = document.querySelectorAll("#quizOptions button");
-  allBtns.forEach(b => {
-    b.disabled = true;
-    if (b.innerText.includes(correct) && chosen !== correct) {
-      b.className = "w-full text-left p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-500/15 font-extrabold text-xs flex items-center gap-3";
-    }
-  });
+            const oldArea = member.area;
+            member.area = newArea;
+            member.updatedAt = Date.now();
 
-  const fb = $("quizFeedback");
-  fb.classList.remove("hidden");
+            addLog(`${member.name} foi remanejado(a): ${oldArea} ➔ ${newArea}.`, 'area');
+            showToast(`📍 ${member.name} posicionado(a) em ${newArea}!`, 'yellow');
 
-  if (chosen === correct) {
-    selectedBtn.className = "anim-pop-correct w-full text-left p-3.5 rounded-2xl border-2 border-emerald-500 bg-emerald-500/20 font-extrabold text-xs flex items-center gap-3 shadow-md";
-    currentStreak++;
-    if (currentUserKey && users[currentUserKey]) {
-      users[currentUserKey].correctAnswers = (users[currentUserKey].correctAnswers || 0) + 1;
-    }
-    addXp(25);
-    fb.className = "p-3.5 rounded-2xl text-xs font-extrabold bg-emerald-500/15 text-emerald-500 border border-emerald-500/30";
-    fb.textContent = `✅ Alternativa ${letter} Correta! Você ganhou +25 XP!`;
-    $("nextQuizBtn").textContent = "PRÓXIMA PERGUNTA ➡️";
-    $("nextQuizBtn").classList.remove("hidden");
-  } else {
-    selectedBtn.className = "anim-shake-wrong w-full text-left p-3.5 rounded-2xl border-2 border-red-500 bg-red-500/20 font-extrabold text-xs flex items-center gap-3";
-    currentStreak = 0;
-    playWrongAnswerSound();
+            saveStateToStorage();
+            renderAll();
+        }
 
-    if (currentQuizQuestionId) recordMistakeQuestion(currentQuizQuestionId);
-    const newHearts = Math.max(0, currentHearts - 1);
+        // ==========================================
+        // CADASTRO RÁPIDO E MODAL DE COLABORADORES
+        // ==========================================
+        function selectQuickStatus(statusKey) {
+            state.quickAddStatus = statusKey;
+            const buttons = document.querySelectorAll('.quick-status-btn');
+            buttons.forEach(btn => {
+                const st = btn.getAttribute('data-status');
+                if (st === statusKey) {
+                    btn.className = 'quick-status-btn py-1.5 px-2 rounded-lg text-[11px] font-black border-2 border-mcred bg-mcyellow/25 text-mcgraphite dark:text-mcyellow transition';
+                } else {
+                    btn.className = 'quick-status-btn py-1.5 px-2 rounded-lg text-[11px] font-semibold border border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800 transition';
+                }
+            });
+        }
 
-    if (newHearts <= 0) {
-      const lockUntil = Date.now() + HEARTS_COOLDOWN_MS;
-      setActiveHeartsState(0, lockUntil);
-      if (currentUserKey) scheduleCloudSync(currentUserKey, true);
+        function handleQuickAdd(event) {
+            event.preventDefault();
+            const nameInput = document.getElementById('quick-name');
+            const roleSelect = document.getElementById('quick-role');
+            const areaSelect = document.getElementById('quick-area');
 
-      fb.className = "p-3.5 rounded-2xl text-xs font-extrabold bg-red-500/15 text-red-500 border border-red-500/30";
-      fb.innerHTML = `💔 <strong>Você perdeu todos os seus 5 corações!</strong><br>Gabarito: <span class="underline">${correct}</span>.<br><span class="mt-1 inline-block">⏳ Aguarde 10 minutos (ou treine na Bancada Monta-Lanche abaixo)!</span>`;
-      $("nextQuizBtn").textContent = "VER CRONÔMETRO DE RECARGA (10 MIN) ⏳";
-      $("nextQuizBtn").classList.remove("hidden");
-    } else {
-      setActiveHeartsState(newHearts, 0);
-      if (currentUserKey) scheduleCloudSync(currentUserKey, false);
+            const name = nameInput.value.trim();
+            if (!name) return;
 
-      fb.className = "p-3.5 rounded-2xl text-xs font-extrabold bg-red-500/15 text-red-500 border border-red-500/30";
-      fb.innerHTML = `❌ Quase! Você perdeu 1 coração (Restam ${newHearts} ❤️) e a questão foi salva em <strong>Minhas Dúvidas</strong>.<br>Gabarito: <span class="underline mt-1 inline-block">${correct}</span>`;
-      $("nextQuizBtn").textContent = "PRÓXIMA PERGUNTA ➡️";
-      $("nextQuizBtn").classList.remove("hidden");
-    }
-  }
+            const role = roleSelect.value || 'Atendente';
+            const area = areaSelect.value || state.areas[0];
+            const status = state.quickAddStatus || 'ACTIVE';
 
-  $("statStreakDisplay").textContent = `${currentStreak} 🔥`;
-}
+            const newMember = {
+                id: 'mc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                name,
+                role,
+                area,
+                status,
+                breakStart: status === 'BREAK' ? Date.now() : null,
+                note: '',
+                updatedAt: Date.now()
+            };
 
-// =========================================================================
-// FLASHCARDS 3D, BOOK E RANKING
-// =========================================================================
+            state.members.unshift(newMember);
+            addLog(`${name} (${role}) foi escalado(a) em ${area} [${STATUS_CONFIG[status].shortLabel}].`, 'active');
+            showToast(`🍔 ${name} escalado(a) em ${area}!`, 'emerald');
 
-function loadRandomFlashcard() {
-  playCardFlipSound();
-  const inner = $("fcFlipInner");
-  if (!inner) return;
-  inner.classList.remove("is-flipped");
-  setTimeout(() => {
-    const item = QUESTIONS_DB[Math.floor(Math.random() * QUESTIONS_DB.length)];
-    $("fcMeta").textContent = `Questão #${item.id} (${item.level}) • Toque para girar 3D 🔄`;
-    $("fcQuestion").textContent = item.q;
-    $("fcAnswer").textContent = item.a;
-  }, 150);
-}
+            nameInput.value = '';
+            selectQuickStatus('ACTIVE');
 
-function flipFlashcard() {
-  playCardFlipSound();
-  const inner = $("fcFlipInner");
-  if (inner) inner.classList.toggle("is-flipped");
-}
+            saveStateToStorage();
+            renderAll();
+        }
 
-function debouncedBookSearch() {
-  clearTimeout(searchDebounceTimer);
-  searchDebounceTimer = setTimeout(() => { renderBookList(); }, 150);
-}
+        function openMemberModal(memberId = null) {
+            const modal = document.getElementById('member-modal');
+            const titleEl = document.getElementById('member-modal-title');
+            const idInput = document.getElementById('modal-member-id');
+            const nameInput = document.getElementById('modal-member-name');
+            const roleSelect = document.getElementById('modal-member-role');
+            const areaSelect = document.getElementById('modal-member-area');
+            const statusSelect = document.getElementById('modal-member-status');
+            const noteInput = document.getElementById('modal-member-note');
 
-function setBookFilter(level) {
-  playTabClickSound();
-  currentBookFilter = level;
-  ["ALL", "Básico", "Intermediário", "Avançado"].forEach(lvl => {
-    const btn = $(`filter-${lvl}`);
-    if (btn) {
-      btn.className = lvl === level
-        ? "px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-red-600 text-white shadow-sm shrink-0 btn-tap"
-        : "px-3.5 py-1.5 rounded-xl text-xs font-extrabold subtle-box shrink-0 btn-tap";
-    }
-  });
-  renderBookList();
-}
+            renderAreaSelectors();
 
-function renderBookList() {
-  const search = $("searchBookInput").value.toLowerCase();
-  const container = $("bookQuestionsContainer");
+            if (memberId) {
+                const member = state.members.find(m => m.id === memberId);
+                if (!member) return;
+                titleEl.textContent = 'Editar Colaborador';
+                idInput.value = member.id;
+                nameInput.value = member.name;
+                roleSelect.value = ROLE_BADGES[member.role] ? member.role : 'Atendente';
+                areaSelect.value = member.area;
+                statusSelect.value = member.status;
+                noteInput.value = member.note || '';
+            } else {
+                titleEl.textContent = 'Escalar Novo Colaborador';
+                idInput.value = '';
+                nameInput.value = '';
+                roleSelect.value = 'Atendente';
+                areaSelect.value = state.filterArea !== 'ALL' ? state.filterArea : (state.areas[0] || 'Cozinha / Chapa (Grill)');
+                statusSelect.value = 'ACTIVE';
+                noteInput.value = '';
+            }
 
-  const filtered = QUESTIONS_DB.filter(item => {
-    const matchesLevel = currentBookFilter === "ALL" || item.level === currentBookFilter;
-    const matchesText = !search || item.q.toLowerCase().includes(search) || item.a.toLowerCase().includes(search) || String(item.id).includes(search);
-    return matchesLevel && matchesText;
-  });
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => nameInput.focus(), 50);
+        }
 
-  $("bookCountBadge").textContent = `${filtered.length} questões`;
+        function closeMemberModal() {
+            const modal = document.getElementById('member-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
 
-  container.innerHTML = filtered.map(item => `
-    <div class="pro-card rounded-2xl p-4">
-      <div class="flex items-center justify-between mb-1.5">
-        <span class="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-500 border border-red-500/20">Questão #${item.id} • ${item.level}</span>
-        <button onclick="revealBookAnswer(this)" class="text-[11px] font-extrabold text-amber-500 hover:underline btn-tap">Ver Resposta</button>
-      </div>
-      <p class="font-extrabold text-xs leading-relaxed">${item.q}</p>
-      <p class="hidden mt-2.5 pt-2.5 border-t border-slate-500/20 text-xs font-bold text-emerald-500">✅ ${item.a}</p>
-    </div>
-  `).join("");
-}
+        function handleMemberModalSubmit(event) {
+            event.preventDefault();
+            const id = document.getElementById('modal-member-id').value;
+            const name = document.getElementById('modal-member-name').value.trim();
+            const role = document.getElementById('modal-member-role').value;
+            const area = document.getElementById('modal-member-area').value;
+            const status = document.getElementById('modal-member-status').value;
+            const note = document.getElementById('modal-member-note').value.trim();
 
-function revealBookAnswer(btn) {
-  playCardFlipSound();
-  const answerEl = btn.parentElement.nextElementSibling.nextElementSibling;
-  if (answerEl.classList.contains("hidden")) {
-    answerEl.classList.remove("hidden");
-    btn.textContent = "Ocultar";
-  } else {
-    answerEl.classList.add("hidden");
-    btn.textContent = "Ver Resposta";
-  }
-}
+            if (!name) return;
 
-function renderLeaderboard() {
-  const podiumContainer = $("podiumTop3Container");
-  const container = $("leaderboardContainer");
-  const list = Object.values(users).filter(u => u && u.name && !u._deleted).sort((a, b) => (b.xp || 0) - (a.xp || 0));
+            if (id) {
+                const member = state.members.find(m => m.id === id);
+                if (member) {
+                    const wasBreak = member.status === 'BREAK';
+                    member.name = name;
+                    member.role = role;
+                    member.area = area;
+                    member.status = status;
+                    member.note = note;
+                    member.updatedAt = Date.now();
+                    if (status === 'BREAK' && !wasBreak) {
+                        member.breakStart = Date.now();
+                    } else if (status !== 'BREAK') {
+                        member.breakStart = null;
+                    }
+                    addLog(`Cadastro de ${name} atualizado (${role} • ${area}).`, 'info');
+                    showToast(`Dados de ${name} salvos!`, 'yellow');
+                }
+            } else {
+                const newMember = {
+                    id: 'mc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                    name,
+                    role,
+                    area,
+                    status,
+                    breakStart: status === 'BREAK' ? Date.now() : null,
+                    note,
+                    updatedAt: Date.now()
+                };
+                state.members.unshift(newMember);
+                addLog(`${name} (${role}) adicionado(a) ao posto ${area}.`, 'active');
+                showToast(`✅ ${name} posicionado(a) no plantão!`, 'emerald');
+            }
 
-  if (list.length === 0) {
-    if (podiumContainer) podiumContainer.innerHTML = "";
-    if (container) container.innerHTML = `<div class="p-6 text-center text-xs font-bold text-muted-pro subtle-box rounded-2xl border-dashed">Nenhum colaborador cadastrado ainda. Crie sua conta para estrear o Pódio!</div>`;
-    return;
-  }
+            closeMemberModal();
+            saveStateToStorage();
+            renderAll();
+        }
 
-  const first = list[0];
-  const second = list[1] || null;
-  const third = list[2] || null;
+        function promptDeleteMember(memberId) {
+            const member = state.members.find(m => m.id === memberId);
+            if (!member) return;
 
-  if (podiumContainer) {
-    podiumContainer.innerHTML = `
-      <div class="flex flex-col items-center">
-        ${second ? `
-          <div class="mb-1">${renderAvatarBadge(second.avatar, "w-11 h-11", "text-xl", "subtle-box border-2 border-slate-300")}</div>
-          <p class="font-black text-[10px] text-center truncate w-full px-1">${second.name}</p>
-          <span class="text-[10px] font-extrabold text-red-500">${second.xp || 0} XP</span>
-          <div class="w-full h-16 mt-2 rounded-t-2xl bg-gradient-to-b from-slate-300 to-slate-400 text-slate-900 flex flex-col items-center justify-center font-black shadow-inner">
-            <span class="text-lg">🥈</span>
-            <span class="text-[10px]">2º Lugar</span>
-          </div>
-        ` : `<div class="w-full h-16 mt-10 rounded-t-2xl subtle-box opacity-40 flex items-center justify-center text-xs font-bold">2º</div>`}
-      </div>
+            openConfirmModal(
+                `Retirar ${member.name} da escala?`,
+                `Deseja realmente remover "${member.name}" (${member.role} - ${member.area}) do plantão atual?`,
+                () => {
+                    state.members = state.members.filter(m => m.id !== memberId);
+                    addLog(`${member.name} foi retirado(a) da escala.`, 'absent');
+                    showToast(`🗑️ ${member.name} removido(a) da escala.`, 'red');
+                    saveStateToStorage();
+                    renderAll();
+                }
+            );
+        }
 
-      <div class="flex flex-col items-center">
-        <span class="text-lg mb-0.5 float-slow">👑 ☕</span>
-        <div class="mb-1">${renderAvatarBadge(first.avatar, "w-14 h-14", "text-2xl", "gold-gradient text-slate-950 border-2 border-white shadow-lg")}</div>
-        <p class="font-black text-xs text-center truncate w-full px-1">${first.name}</p>
-        <span class="text-[11px] font-black text-amber-500">${first.xp || 0} XP</span>
-        <div class="w-full h-24 mt-2 rounded-t-2xl gold-gradient text-slate-950 flex flex-col items-center justify-center font-black shadow-lg border-t-2 border-white">
-          <span class="text-2xl">🥇</span>
-          <span class="text-[11px] uppercase tracking-wider">1º Lugar</span>
-        </div>
-      </div>
+        // ==========================================
+        // GERENCIAMENTO DE POSTOS DO RESTAURANTE
+        // ==========================================
+        function getStationMeta(areaName) {
+            return STATION_METADATA[areaName] || { emoji: '📍', target: 1, critical: false };
+        }
 
-      <div class="flex flex-col items-center">
-        ${third ? `
-          <div class="mb-1">${renderAvatarBadge(third.avatar, "w-11 h-11", "text-xl", "subtle-box border-2 border-amber-700/50")}</div>
-          <p class="font-black text-[10px] text-center truncate w-full px-1">${third.name}</p>
-          <span class="text-[10px] font-extrabold text-red-500">${third.xp || 0} XP</span>
-          <div class="w-full h-14 mt-2 rounded-t-2xl bg-gradient-to-b from-amber-600 to-amber-800 text-white flex flex-col items-center justify-center font-black shadow-inner">
-            <span class="text-base">🥉</span>
-            <span class="text-[10px]">3º Lugar</span>
-          </div>
-        ` : `<div class="w-full h-14 mt-12 rounded-t-2xl subtle-box opacity-40 flex items-center justify-center text-xs font-bold">3º</div>`}
-      </div>
-    `;
-  }
+        function renderAreaSelectors() {
+            const filterSelect = document.getElementById('area-filter-select');
+            const quickAreaSelect = document.getElementById('quick-area');
+            const modalAreaSelect = document.getElementById('modal-member-area');
 
-  if (container) {
-    const now = Date.now();
-    container.innerHTML = list.map((u, idx) => {
-      const medal = idx === 0 ? "🥇 ☕" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}º`;
-      const info = getLevelInfo(u.xp || 0);
-      const role = u.role || u.station || "Atendente";
-      const isOnline = (now - (u.lastSeen || 0)) < 25000;
-      const onlineDot = isOnline
-        ? `<span class="w-2.5 h-2.5 bg-emerald-500 rounded-full inline-block ml-1 shadow-sm" title="Online agora"></span>`
-        : `<span class="w-2.5 h-2.5 bg-slate-400/50 rounded-full inline-block ml-1" title="Offline"></span>`;
+            if (filterSelect) {
+                const currentVal = state.filterArea;
+                filterSelect.innerHTML = `<option value="ALL">Todos os Postos (${state.areas.length})</option>` +
+                    state.areas.map(a => {
+                        const meta = getStationMeta(a);
+                        return `<option value="${escapeHtml(a)}">${meta.emoji} ${escapeHtml(a)}</option>`;
+                    }).join('');
+                filterSelect.value = state.areas.includes(currentVal) ? currentVal : 'ALL';
+            }
 
-      return `
-        <div class="flex items-center justify-between p-3.5 rounded-2xl ${idx === 0 ? 'bg-amber-500/15 border-2 border-amber-500/50 shadow-sm' : 'subtle-box'}">
-          <div class="flex items-center gap-3">
-            <span class="font-black text-xs w-7 text-center">${medal}</span>
-            ${renderAvatarBadge(u.avatar, "w-10 h-10", "text-xl", "pro-card")}
-            <div>
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <p class="font-black text-xs">${u.name} ${onlineDot}</p>
-                <span class="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-red-500/15 text-red-500 uppercase">${role}</span>
-              </div>
-              <p class="text-[10px] text-muted-pro font-bold mt-0.5">${info.title}</p>
-            </div>
-          </div>
-          <div class="text-right shrink-0">
-            <span class="font-black text-xs text-red-500">${u.xp || 0} XP</span>
-            <span class="block text-[10px] text-muted-pro font-semibold">${u.correctAnswers || 0} acertos</span>
-          </div>
-        </div>
-      `;
-    }).join("");
-  }
-}
+            const optionsHtml = state.areas.map(a => {
+                const meta = getStationMeta(a);
+                return `<option value="${escapeHtml(a)}">${meta.emoji} ${escapeHtml(a)}</option>`;
+            }).join('');
 
-function shareMyScoreWhatsApp() {
-  playTabClickSound();
-  if (!currentUserKey || !users[currentUserKey]) return;
-  const u = users[currentUserKey];
-  const info = getLevelInfo(u.xp || 0);
-  const copyUser = { ...u, avatar: isPhotoAvatar(u.avatar) ? "🍔" : (u.avatar || "🍔") };
-  const encodedUser = btoa(encodeURIComponent(JSON.stringify(copyUser)));
-  const syncUrl = `${window.location.origin}${window.location.pathname}?syncUser=${encodeURIComponent(encodedUser)}`;
-  const text = `🏆 *OLIMPÍADAS DO BÁSICO — VENTURE (FINALIZA 25/10)*\n👤 Colaborador: *${u.name}*\n🎖️ Cargo: ${u.role || 'Atendente'}\n⚡ Pontuação: *${u.xp || 0} XP* (${info.title})\n✅ Acertos: ${u.correctAnswers || 0}\n\n🔗 *Link de Sincronia no Ranking:* ${syncUrl}`;
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-}
+            if (quickAreaSelect) quickAreaSelect.innerHTML = optionsHtml;
+            if (modalAreaSelect) modalAreaSelect.innerHTML = optionsHtml;
+        }
 
-// =========================================================================
-// PAINEL ADM (SENHA: 342005)
-// =========================================================================
+        function openAreasModal() {
+            const modal = document.getElementById('areas-modal');
+            renderAreasModalList();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
 
-function unlockAdminPanel() {
-  const pass = $("adminPassInput").value.trim();
-  const err = $("adminAuthError");
-  if (pass === ADMIN_SECRET_PASS) {
-    isAdminUnlocked = true;
-    playHitSuccessSound();
-    err.classList.add("hidden");
-    $("adminLockScreen").classList.add("hidden");
-    $("adminDashboard").classList.remove("hidden");
-    renderAdminUsersList();
-    fetchCloudHistorySafe(true);
-  } else {
-    playWrongAnswerSound();
-    err.classList.remove("hidden");
-  }
-}
+        function closeAreasModal() {
+            const modal = document.getElementById('areas-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
 
-function lockAdminPanel() {
-  playTabClickSound();
-  isAdminUnlocked = false;
-  $("adminPassInput").value = "";
-  $("adminDashboard").classList.add("hidden");
-  $("adminLockScreen").classList.remove("hidden");
-}
+        function renderAreasModalList() {
+            const listEl = document.getElementById('areas-modal-list');
+            if (!listEl) return;
 
-function renderAdminUsersList() {
-  const container = $("adminUsersList");
-  const entries = Object.entries(users).filter(([k, u]) => u && u.name && !u._deleted).sort((a, b) => (b[1].xp || 0) - (a[1].xp || 0));
-  $("adminStatsSummary").textContent = `Total: ${entries.length} colaborador(es) cadastrado(s)`;
+            listEl.innerHTML = state.areas.map(area => {
+                const count = state.members.filter(m => m.area === area).length;
+                const meta = getStationMeta(area);
+                return `
+                    <div class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-base">${meta.emoji}</span>
+                            <span class="text-xs sm:text-sm font-bold text-mcgraphite dark:text-stone-100 truncate">${escapeHtml(area)}</span>
+                            <span class="text-[11px] px-2 py-0.5 rounded-full bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold shrink-0">${count}</span>
+                        </div>
+                        ${state.areas.length > 1 ? `
+                            <button onclick="deleteArea('${escapeJs(area)}')" class="p-1.5 rounded-lg text-stone-400 hover:text-mcred hover:bg-rose-50 dark:hover:bg-rose-950/50 transition" title="Excluir posto">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
 
-  if (entries.length === 0) {
-    container.innerHTML = `<p class="text-xs text-muted-pro text-center py-4 font-bold">Nenhum colaborador cadastrado.</p>`;
-    return;
-  }
+        function handleAddArea(event) {
+            event.preventDefault();
+            const input = document.getElementById('new-area-input');
+            const newArea = input.value.trim();
+            if (!newArea) return;
 
-  const now = Date.now();
-  container.innerHTML = entries.map(([key, u], index) => {
-    const lvl = getLevelInfo(u.xp || 0).level;
-    const role = u.role || u.station || "Atendente";
-    const isLocked = (u.heartsLockUntil || 0) > now;
-    const heartsBadge = isLocked
-      ? `<span class="text-[10px] font-bold text-red-500">⏳ Bloqueado (${formatTimeRemaining(u.heartsLockUntil - now)})</span>`
-      : `<span class="text-[10px] font-bold text-emerald-500">${u.hearts !== undefined ? u.hearts : 5} ❤️ disponíveis</span>`;
+            if (state.areas.some(a => a.toLowerCase() === newArea.toLowerCase())) {
+                showToast('Esse posto já está cadastrado!', 'yellow');
+                return;
+            }
 
-    return `
-      <div class="p-4 rounded-2xl subtle-box space-y-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2.5">
-            ${renderAvatarBadge(u.avatar, "w-11 h-11", "text-2xl", "pro-card")}
-            <div>
-              <span class="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-900 text-[#FFC72C]">#${index + 1} • Nível ${lvl} • ${role}</span>
-              <h4 class="font-black text-xs mt-1">${u.name}</h4>
-              <p class="text-[11px] text-muted-pro font-semibold">🔑 Senha: <span class="font-extrabold">${u.password || '1234'}</span> • ${heartsBadge}</p>
-            </div>
-          </div>
-          <div class="text-right">
-            <span class="text-sm font-black text-red-500">${u.xp || 0} XP</span>
-            <span class="block text-[10px] text-muted-pro font-bold">${u.correctAnswers || 0} acertos</span>
-          </div>
-        </div>
+            state.areas.push(newArea);
+            input.value = '';
+            addLog(`Novo posto operacional criado: ${newArea}.`, 'area');
+            showToast(`✨ Posto "${newArea}" adicionado!`, 'emerald');
 
-        <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-500/20">
-          <button onclick="adminAdjustXp('${key}', 100)" class="px-2.5 py-1.5 rounded-xl bg-emerald-600 text-white font-black text-[10px] btn-tap">+100 XP</button>
-          <button onclick="adminAdjustXp('${key}', 500)" class="px-2.5 py-1.5 rounded-xl bg-emerald-800 text-white font-black text-[10px] btn-tap">+500 XP</button>
-          <button onclick="adminAdjustXp('${key}', -100)" class="px-2.5 py-1.5 rounded-xl bg-amber-600 text-white font-black text-[10px] btn-tap">-100 XP</button>
-          <button onclick="adminSetCustomXp('${key}')" class="px-2.5 py-1.5 rounded-xl bg-blue-600 text-white font-black text-[10px] btn-tap">✏️ Definir XP</button>
-          <button onclick="adminRestoreHearts('${key}')" class="px-2.5 py-1.5 rounded-xl bg-pink-600 text-white font-black text-[10px] btn-tap">❤️ Restaurar Vidas</button>
-          <button onclick="adminResetUser('${key}')" class="px-2.5 py-1.5 rounded-xl bg-slate-500/20 font-bold text-[10px] btn-tap">Zerar</button>
-          <button onclick="adminDeleteUser('${key}')" class="px-2.5 py-1.5 rounded-xl bg-red-500/20 text-red-500 font-bold text-[10px] ml-auto btn-tap">🗑️ Excluir</button>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
+            saveStateToStorage();
+            renderAreaSelectors();
+            renderAreasModalList();
+            renderAll();
+        }
 
-function adminRestoreHearts(key) {
-  playHitSuccessSound();
-  if (!users[key]) return;
-  users[key].hearts = 5;
-  users[key].heartsLockUntil = 0;
-  users[key].updatedAt = Date.now();
-  users[key].adminOverrideAt = Date.now();
-  if (key === currentUserKey) {
-    setActiveHeartsState(5, 0);
-    checkAndRenderCooldownScreen();
-    loadNextQuizQuestion();
-  }
-  scheduleCloudSync(key, true);
-  renderAdminUsersList();
-}
+        function deleteArea(areaName) {
+            if (state.areas.length <= 1) return;
+            const fallbackArea = state.areas.find(a => a !== areaName) || state.areas[0];
 
-function adminAdjustXp(key, delta) {
-  if (!users[key]) return;
-  const oldLevel = getLevelInfo(users[key].xp || 0).level;
-  users[key].xp = Math.max(0, (users[key].xp || 0) + delta);
-  const newLevel = getLevelInfo(users[key].xp || 0).level;
+            state.areas = state.areas.filter(a => a !== areaName);
+            state.members.forEach(m => {
+                if (m.area === areaName) m.area = fallbackArea;
+            });
+            if (state.filterArea === areaName) state.filterArea = 'ALL';
 
-  users[key].updatedAt = Date.now();
-  users[key].adminOverrideAt = Date.now();
+            addLog(`Posto "${areaName}" removido (equipe movida para ${fallbackArea}).`, 'info');
+            showToast(`Posto "${areaName}" removido.`, 'dark');
 
-  if (newLevel > oldLevel) {
-    playMcDonaldsJingle();
-  } else if (delta > 0) {
-    playHitSuccessSound();
-  } else {
-    playTabClickSound();
-  }
+            saveStateToStorage();
+            renderAreaSelectors();
+            renderAreasModalList();
+            renderAll();
+        }
 
-  scheduleCloudSync(key, true);
-}
+        // ==========================================
+        // FILTROS E BUSCA
+        // ==========================================
+        function setFilterStatus(status) {
+            state.filterStatus = status;
+            renderAll();
+        }
 
-function adminSetCustomXp(key) {
-  playTabClickSound();
-  if (!users[key]) return;
-  const val = prompt(`Digite o novo valor exato de XP para ${users[key].name}:`, users[key].xp || 0);
-  if (val === null) return;
-  const parsed = parseInt(val, 10);
-  if (!isNaN(parsed)) {
-    const oldLevel = getLevelInfo(users[key].xp || 0).level;
-    users[key].xp = Math.max(0, parsed);
-    const newLevel = getLevelInfo(users[key].xp || 0).level;
+        function setFilterArea(area) {
+            state.filterArea = area;
+            const select = document.getElementById('area-filter-select');
+            if (select) select.value = area;
+            renderAll();
+        }
 
-    users[key].updatedAt = Date.now();
-    users[key].adminOverrideAt = Date.now();
+        function handleSearch(query) {
+            state.searchQuery = query;
+            const input = document.getElementById('search-input');
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (input && input.value !== query) input.value = query;
+            if (clearBtn) clearBtn.classList.toggle('hidden', !query.trim());
+            renderAll();
+        }
 
-    if (newLevel > oldLevel) {
-      playMcDonaldsJingle();
-    } else {
-      playHitSuccessSound();
-    }
-    scheduleCloudSync(key, true);
-  }
-}
+        function setViewMode(mode) {
+            state.viewMode = mode;
+            renderAll();
+        }
 
-function adminResetUser(key) {
-  playTabClickSound();
-  if (!users[key]) return;
-  if (!confirm(`Zerar o XP e os acertos de ${users[key].name}?`)) return;
-  users[key].xp = 0;
-  users[key].correctAnswers = 0;
-  users[key].hearts = 5;
-  users[key].heartsLockUntil = 0;
-  users[key].updatedAt = Date.now();
-  users[key].adminOverrideAt = Date.now();
-  scheduleCloudSync(key, true);
-}
+        function resetFilters() {
+            state.filterStatus = 'ALL';
+            state.filterArea = 'ALL';
+            state.searchQuery = '';
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) searchInput.value = '';
+            const clearBtn = document.getElementById('clear-search-btn');
+            if (clearBtn) clearBtn.classList.add('hidden');
+            const areaSelect = document.getElementById('area-filter-select');
+            if (areaSelect) areaSelect.value = 'ALL';
+            renderAll();
+        }
 
-function adminDeleteUser(key) {
-  playTabClickSound();
-  if (!users[key]) return;
-  if (!confirm(`Excluir permanentemente ${users[key].name} do Ranking?`)) return;
-  users[key]._deleted = true;
-  users[key].updatedAt = Date.now();
-  users[key].adminOverrideAt = Date.now();
-  scheduleCloudSync(key, true);
-}
+        function getFilteredMembers() {
+            return state.members.filter(m => {
+                const matchesStatus = state.filterStatus === 'ALL' || m.status === state.filterStatus;
+                const matchesArea = state.filterArea === 'ALL' || m.area === state.filterArea;
+                const q = state.searchQuery.trim().toLowerCase();
+                const matchesSearch = !q ||
+                    m.name.toLowerCase().includes(q) ||
+                    (m.role && m.role.toLowerCase().includes(q)) ||
+                    m.area.toLowerCase().includes(q) ||
+                    (m.note && m.note.toLowerCase().includes(q));
+                return matchesStatus && matchesArea && matchesSearch;
+            });
+        }
 
-function adminSaveMember() {
-  const name = $("admNewName").value.trim().toUpperCase();
-  const role = $("admNewRole").value;
-  const pass = $("admNewPass").value.trim() || "1234";
-  const xp = parseInt($("admNewXp").value || "0", 10);
-  const hits = parseInt($("admNewHits").value || "0", 10);
+        // ==========================================
+        // RENDERIZAÇÃO PRINCIPAL DO HUB MCDONALD'S
+        // ==========================================
+        function renderAll() {
+            renderStatsAndFiltersUI();
+            renderAreaDistributionBar();
+            renderActiveBreaksPanel();
+            renderHubContent();
+            renderActivityLogs();
+            lucide.createIcons();
+            updateClockAndTimers();
+        }
 
-  if (!name) return alert("Digite o nome do colaborador!");
-  const key = name.toLowerCase();
+        function renderStatsAndFiltersUI() {
+            const total = state.members.length;
+            const activeCount = state.members.filter(m => m.status === 'ACTIVE').length;
+            const breakCount = state.members.filter(m => m.status === 'BREAK').length;
+            const offCount = state.members.filter(m => m.status === 'OFF').length;
+            const absentCount = state.members.filter(m => m.status === 'ABSENT').length;
 
-  users[key] = {
-    name: name,
-    role: role,
-    _deleted: false,
-    avatar: users[key]?.avatar || "🍔",
-    password: pass,
-    xp: Math.max(0, xp),
-    correctAnswers: Math.max(0, hits),
-    hearts: 5,
-    heartsLockUntil: 0,
-    mistakes: users[key]?.mistakes || [],
-    lastSeen: Date.now(),
-    updatedAt: Date.now(),
-    adminOverrideAt: Date.now()
-  };
+            document.getElementById('count-all').textContent = total;
+            document.getElementById('count-active').textContent = activeCount;
+            document.getElementById('count-break').textContent = breakCount;
+            document.getElementById('count-off').textContent = offCount;
+            document.getElementById('count-absent').textContent = absentCount;
 
-  playHitSuccessSound();
-  scheduleCloudSync(key, true);
+            const pctActive = total > 0 ? Math.round((activeCount / total) * 100) : 0;
+            document.getElementById('pct-active').textContent = `${pctActive}% em operação`;
 
-  $("admNewName").value = "";
-  $("admNewPass").value = "";
-  $("admNewXp").value = "";
-  $("admNewHits").value = "";
-  alert(`Colaborador ${name} (${role}) salvo com sucesso!`);
-}
+            ['ALL', 'ACTIVE', 'BREAK', 'OFF', 'ABSENT'].forEach(st => {
+                const card = document.getElementById(`stat-card-${st}`);
+                const pill = document.getElementById(`filter-pill-${st}`);
+                const isSelected = state.filterStatus === st;
 
-function switchMainTab(tab) {
-  playTabClickSound();
-  ["quiz", "book", "prizes", "admin", "updates"].forEach(t => {
-    $(`tab-${t}`).classList.add("hidden");
-    const navEl = $(`nav-${t}`);
-    if (navEl) navEl.className = "nav-btn flex flex-col items-center py-1.5 rounded-2xl font-bold text-[10px]";
-  });
-  $(`tab-${tab}`).classList.remove("hidden");
-  const activeNav = $(`nav-${tab}`);
-  if (activeNav) activeNav.className = "nav-btn active-nav flex flex-col items-center py-1.5 rounded-2xl text-[10px]";
-  if (tab === "prizes" || tab === "admin") fetchCloudHistorySafe(false);
-}
+                if (card) {
+                    card.className = isSelected
+                        ? 'text-left p-4 rounded-2xl bg-white dark:bg-mcgraphite border-2 border-mcred dark:border-mcyellow shadow-md transition flex flex-col justify-between group'
+                        : 'text-left p-4 rounded-2xl bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 shadow-sm hover:shadow-md transition flex flex-col justify-between group';
+                }
 
-window.onload = () => {
-  initTheme();
-  injectCountdownAndKitchenUI();
-  rescuePreviousLocalRegistrations();
-  renderAvatarSelector();
-  syncActiveUserHeartsState();
-  loadNextQuizQuestion();
-  loadRandomFlashcard();
-  renderBookList();
-  refreshUIIfNeeded();
+                if (pill) {
+                    pill.className = isSelected
+                        ? 'px-3 py-1 rounded-lg text-xs font-extrabold bg-mcred text-white shadow-xs flex items-center gap-1.5 transition'
+                        : 'px-3 py-1 rounded-lg text-xs font-bold bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 flex items-center gap-1.5 transition';
+                }
+            });
 
-  if (currentUserKey && users[currentUserKey] && !users[currentUserKey]._deleted) {
-    $("authModal").classList.add("hidden");
-    updateHeaderUI();
-  }
+            ['grid', 'kanban-area', 'kanban-status', 'list'].forEach(mode => {
+                const btn = document.getElementById(`view-btn-${mode}`);
+                if (!btn) return;
+                if (state.viewMode === mode) {
+                    btn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-extrabold bg-mcyellow text-mcgraphite shadow-xs flex items-center gap-1.5 transition';
+                } else {
+                    btn.className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold text-stone-600 dark:text-stone-400 hover:text-mcgraphite dark:hover:text-white flex items-center gap-1.5 transition';
+                }
+            });
 
-  initClusterSync();
-  startHeartbeat();
-  fetchCloudHistorySafe(true);
-};
+            const filtered = getFilteredMembers();
+            const summaryEl = document.getElementById('active-filter-summary');
+            if (summaryEl) {
+                const hasFilter = state.filterStatus !== 'ALL' || state.filterArea !== 'ALL' || state.searchQuery.trim() !== '';
+                if (hasFilter) {
+                    summaryEl.innerHTML = `Exibindo <strong>${filtered.length}</strong> de ${total} • <button onclick="resetFilters()" class="text-mcred dark:text-mcyellow hover:underline font-extrabold">Limpar filtros</button>`;
+                } else {
+                    summaryEl.textContent = `Mostrando todos os ${total} colaboradores`;
+                }
+            }
+        }
+
+        // Painel de Cobertura de Postos com barra de capacidade e alerta piscante
+        function renderAreaDistributionBar() {
+            const container = document.getElementById('area-distribution-bar');
+            const uncoveredBadge = document.getElementById('uncovered-counter-badge');
+            if (!container) return;
+
+            let uncoveredCriticalCount = 0;
+
+            container.innerHTML = state.areas.map(area => {
+                const meta = getStationMeta(area);
+                const areaMembers = state.members.filter(m => m.area === area);
+                const activeInArea = areaMembers.filter(m => m.status === 'ACTIVE').length;
+                const breakInArea = areaMembers.filter(m => m.status === 'BREAK').length;
+                const isSelected = state.filterArea === area;
+
+                const isUncovered = activeInArea === 0 && (meta.critical || areaMembers.length > 0);
+                if (activeInArea === 0 && meta.critical) uncoveredCriticalCount++;
+
+                const target = meta.target || 2;
+                const pct = Math.min(100, Math.round((activeInArea / target) * 100));
+                const barColor = activeInArea === 0 ? 'bg-mcred' : activeInArea >= target ? 'bg-emerald-500' : 'bg-mcyellow';
+
+                return `
+                    <button
+                        onclick="setFilterArea('${isSelected ? 'ALL' : escapeJs(area)}')"
+                        class="p-3 rounded-xl border text-left transition flex flex-col justify-between gap-2 ${
+                            isSelected
+                                ? 'bg-mcgraphite text-white border-2 border-mcyellow shadow-md'
+                                : isUncovered
+                                    ? 'critical-uncovered bg-mcred/10 dark:bg-mcred/20 border-2 border-mcred'
+                                    : 'bg-stone-50 dark:bg-stone-800/70 border-stone-200 dark:border-stone-700/80 hover:border-mcyellow'
+                        }"
+                    >
+                        <div class="w-full">
+                            <div class="flex items-center justify-between gap-1 mb-1">
+                                <span class="text-base leading-none">${meta.emoji}</span>
+                                ${isUncovered ? `
+                                    <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-mcred text-white font-black animate-pulse">
+                                        Posto Descoberto!
+                                    </span>
+                                ` : `
+                                    <span class="text-[10px] font-bold ${isSelected ? 'text-mcyellow' : 'text-stone-400'}">
+                                        Meta: ${target}+
+                                    </span>
+                                `}
+                            </div>
+                            <div class="text-xs font-extrabold leading-tight line-clamp-1 ${isSelected ? 'text-white' : 'text-mcgraphite dark:text-stone-100'}" title="${escapeHtml(area)}">
+                                ${escapeHtml(area)}
+                            </div>
+                        </div>
+
+                        <div class="w-full space-y-1.5">
+                            <div class="flex items-baseline justify-between text-[11px]">
+                                <span><strong class="text-sm font-black ${isSelected ? 'text-mcyellow' : activeInArea > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-mcred'}">${activeInArea}</strong> em posição</span>
+                                ${breakInArea > 0 ? `<span class="text-[10px] font-bold text-amber-500">☕ ${breakInArea}</span>` : `<span class="text-[10px] opacity-60">${areaMembers.length} total</span>`}
+                            </div>
+                            <div class="w-full h-1.5 rounded-full bg-stone-200 dark:bg-stone-700 overflow-hidden">
+                                <div class="h-full ${barColor} transition-all duration-300" style="width: ${pct}%"></div>
+                            </div>
+                        </div>
+                    </button>
+                `;
+            }).join('');
+
+            if (uncoveredBadge) {
+                if (uncoveredCriticalCount > 0) {
+                    uncoveredBadge.textContent = `⚠️ ${uncoveredCriticalCount} Posto(s) Crítico(s) Descoberto(s)!`;
+                    uncoveredBadge.classList.remove('hidden');
+                } else {
+                    uncoveredBadge.classList.add('hidden');
+                }
+            }
+        }
+
+        // Painel Lateral de Controle de Breaks Ativos
+        function renderActiveBreaksPanel() {
+            const listEl = document.getElementById('active-breaks-panel-list');
+            const badgeEl = document.getElementById('active-breaks-badge');
+            if (!listEl || !badgeEl) return;
+
+            const onBreakMembers = state.members.filter(m => m.status === 'BREAK');
+            badgeEl.textContent = `${onBreakMembers.length} em pausa`;
+
+            if (onBreakMembers.length === 0) {
+                listEl.innerHTML = `
+                    <div class="py-6 px-3 text-center rounded-xl bg-stone-50 dark:bg-stone-800/40 border border-dashed border-stone-200 dark:border-stone-700">
+                        <p class="text-xs font-bold text-stone-500 dark:text-stone-400">Nenhum colaborador em Break agora</p>
+                        <p class="text-[11px] text-stone-400 mt-0.5">Quando alguém sair para refeição ou pausa, o cronômetro aparecerá aqui.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = onBreakMembers.map(member => {
+                const meta = getStationMeta(member.area);
+                return `
+                    <div class="p-3 rounded-xl bg-stone-50 dark:bg-stone-800/80 border border-mcyellow/50 flex items-center justify-between gap-2 animate-fade-in">
+                        <div class="min-w-0">
+                            <div class="font-extrabold text-xs sm:text-sm text-mcgraphite dark:text-white truncate">${escapeHtml(member.name)}</div>
+                            <div class="text-[11px] text-stone-500 dark:text-stone-400 truncate">${meta.emoji} ${escapeHtml(member.area)}</div>
+                            <div class="mt-1.5">
+                                <span data-break-badge class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-mcyellow/20 text-amber-800 dark:text-mcyellow text-xs font-mono font-bold">
+                                    <i data-lucide="clock" class="w-3 h-3"></i>
+                                    <span data-break-start="${member.breakStart || Date.now()}">00:00</span>
+                                </span>
+                            </div>
+                        </div>
+                        <button
+                            onclick="changeMemberStatus('${member.id}', 'ACTIVE')"
+                            class="px-2.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold shrink-0 flex items-center gap-1 shadow-xs transition"
+                            title="Retornar colaborador para Em Posição"
+                        >
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            <span>Voltar</span>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderHubContent() {
+            const container = document.getElementById('hub-content-container');
+            if (!container) return;
+
+            const filtered = getFilteredMembers();
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white dark:bg-mcgraphite border border-dashed border-stone-300 dark:border-stone-800 rounded-2xl p-12 text-center">
+                        <div class="w-12 h-12 rounded-2xl bg-mcyellow/20 text-mcred dark:text-mcyellow flex items-center justify-center mx-auto mb-3">
+                            <i data-lucide="users" class="w-6 h-6"></i>
+                        </div>
+                        <h3 class="text-base font-black text-mcgraphite dark:text-white mb-1">Nenhum colaborador encontrado neste filtro</h3>
+                        <p class="text-xs text-stone-500 dark:text-stone-400 mb-4">Limpe os filtros ativos ou escale uma nova pessoa para o turno.</p>
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="resetFilters()" class="px-4 py-2 rounded-xl text-xs font-bold bg-stone-100 dark:bg-stone-800 text-mcgraphite dark:text-stone-200 hover:bg-stone-200 transition">
+                                Mostrar Todos
+                            </button>
+                            <button onclick="openMemberModal()" class="px-4 py-2 rounded-xl text-xs font-extrabold bg-mcyellow text-mcgraphite hover:bg-mcyellow-light transition">
+                                + Escalar Nome
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (state.viewMode === 'grid') {
+                container.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4">${filtered.map(m => renderMemberCard(m)).join('')}</div>`;
+            } else if (state.viewMode === 'list') {
+                container.innerHTML = renderMemberListView(filtered);
+            } else if (state.viewMode === 'kanban-area') {
+                container.innerHTML = renderKanbanByArea(filtered);
+            } else if (state.viewMode === 'kanban-status') {
+                container.innerHTML = renderKanbanByStatus(filtered);
+            }
+        }
+
+        // Card Individual do Colaborador McDonald's
+        function renderMemberCard(member) {
+            const st = STATUS_CONFIG[member.status] || STATUS_CONFIG.ACTIVE;
+            const initials = getInitials(member.name);
+            const roleBadgeClass = ROLE_BADGES[member.role] || ROLE_BADGES['Atendente'];
+
+            const areaOptions = state.areas.map(a => {
+                const meta = getStationMeta(a);
+                return `<option value="${escapeHtml(a)}" ${a === member.area ? 'selected' : ''}>${meta.emoji} ${escapeHtml(a)}</option>`;
+            }).join('');
+
+            return `
+                <div class="card-transition bg-white dark:bg-mcgraphite rounded-2xl border border-stone-200 dark:border-stone-800 ${st.borderClass} p-4 shadow-sm flex flex-col justify-between gap-3.5 animate-fade-in">
+                    <div>
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="w-11 h-11 rounded-xl bg-mcred text-mcyellow border border-mcyellow/40 flex items-center justify-center font-black text-sm shrink-0 shadow-xs">
+                                    ${escapeHtml(initials)}
+                                </div>
+                                <div class="min-w-0">
+                                    <h4 class="font-black text-sm sm:text-base text-mcgraphite dark:text-white truncate" title="${escapeHtml(member.name)}">
+                                        ${escapeHtml(member.name)}
+                                    </h4>
+                                    <span class="inline-block mt-0.5 text-[10px] px-2 py-0.5 rounded-md ${roleBadgeClass}">
+                                        ${escapeHtml(member.role || 'Atendente')}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="openMemberModal('${member.id}')" class="p-1.5 rounded-lg text-stone-400 hover:text-mcyellow hover:bg-stone-100 dark:hover:bg-stone-800 transition" title="Editar nome, cargo ou nota">
+                                    <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="promptDeleteMember('${member.id}')" class="p-1.5 rounded-lg text-stone-400 hover:text-mcred hover:bg-rose-50 dark:hover:bg-rose-950/40 transition" title="Retirar da escala">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Badge Status + Cronômetro de Break -->
+                        <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold border ${st.badgeClass}">
+                                <span class="w-2 h-2 rounded-full ${st.dotClass}"></span>
+                                ${st.label}
+                            </span>
+
+                            ${member.status === 'BREAK' && member.breakStart ? `
+                                <div data-break-badge class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-mcyellow/20 border border-mcyellow/50 text-amber-800 dark:text-mcyellow text-xs font-mono font-bold" title="Tempo em Break">
+                                    <i data-lucide="timer" class="w-3.5 h-3.5"></i>
+                                    <span data-break-start="${member.breakStart}">00:00</span>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${member.note ? `
+                            <div class="mt-2.5 px-2.5 py-1.5 rounded-lg bg-stone-50 dark:bg-stone-800/70 text-[11px] text-stone-600 dark:text-stone-300 flex items-center gap-1.5">
+                                <i data-lucide="info" class="w-3.5 h-3.5 text-mcred dark:text-mcyellow shrink-0"></i>
+                                <span class="truncate font-medium">${escapeHtml(member.note)}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Seletor Rápido de Posto + Botões de Status -->
+                    <div class="space-y-2.5 pt-2.5 border-t border-stone-100 dark:border-stone-800">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-stone-400">Posto:</span>
+                            <select
+                                onchange="changeMemberArea('${member.id}', this.value)"
+                                class="flex-1 max-w-[230px] px-2.5 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs font-bold text-mcgraphite dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-mcyellow cursor-pointer"
+                            >
+                                ${areaOptions}
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-1.5">
+                            ${renderStatusButtons(member)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStatusButtons(member) {
+            const buttons = [
+                { key: 'ACTIVE', label: 'Plantão', hover: 'hover:border-emerald-500 hover:text-emerald-600 dark:hover:text-emerald-400' },
+                { key: 'BREAK', label: 'Break', hover: 'hover:border-mcyellow hover:text-amber-600 dark:hover:text-mcyellow' },
+                { key: 'OFF', label: 'Folga', hover: 'hover:border-sky-500 hover:text-sky-600 dark:hover:text-sky-400' },
+                { key: 'ABSENT', label: 'Falta', hover: 'hover:border-mcred hover:text-mcred dark:hover:text-rose-400' }
+            ];
+
+            return buttons.map(b => {
+                const isCurrent = member.status === b.key;
+                const activeCls = STATUS_CONFIG[b.key].btnActiveClass;
+                const inactiveCls = `bg-stone-50 dark:bg-stone-800/90 text-stone-600 dark:text-stone-400 border border-stone-200 dark:border-stone-700/80 ${b.hover}`;
+                return `
+                    <button
+                        onclick="changeMemberStatus('${member.id}', '${b.key}')"
+                        class="py-1.5 px-1.5 rounded-lg text-[11px] font-bold transition text-center truncate ${isCurrent ? activeCls : inactiveCls}"
+                        title="Alterar para ${STATUS_CONFIG[b.key].label}"
+                    >
+                        ${b.label}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        // Visão Mapa de Postos (Kanban por Estação do McDonald's)
+        function renderKanbanByArea(members) {
+            const areasToShow = state.filterArea === 'ALL' ? state.areas : [state.filterArea];
+
+            return `
+                <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4 animate-fade-in">
+                    ${areasToShow.map(area => {
+                        const meta = getStationMeta(area);
+                        const areaMembers = members.filter(m => m.area === area);
+                        const activeCount = areaMembers.filter(m => m.status === 'ACTIVE').length;
+                        const isCriticalEmpty = activeCount === 0 && meta.critical;
+
+                        return `
+                            <div class="bg-stone-200/60 dark:bg-stone-900/70 border-2 ${isCriticalEmpty ? 'border-mcred' : 'border-stone-200 dark:border-stone-800'} rounded-2xl p-3.5 flex flex-col gap-3">
+                                <div class="flex items-center justify-between px-1">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="text-lg">${meta.emoji}</span>
+                                        <h4 class="font-black text-sm text-mcgraphite dark:text-white truncate">${escapeHtml(area)}</h4>
+                                    </div>
+                                    <span class="text-xs font-extrabold px-2.5 py-0.5 rounded-full ${activeCount > 0 ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' : 'bg-mcred text-white'} shrink-0">
+                                        ${activeCount} em posição / ${areaMembers.length}
+                                    </span>
+                                </div>
+                                <div class="space-y-2.5 flex-1">
+                                    ${areaMembers.length > 0 ? areaMembers.map(m => renderCompactKanbanCard(m)).join('') : `
+                                        <div class="py-8 text-center text-xs text-stone-400 border border-dashed border-stone-300 dark:border-stone-800 rounded-xl">
+                                            Nenhum colaborador posicionado aqui
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        // Visão Kanban por Status
+        function renderKanbanByStatus(members) {
+            const statuses = ['ACTIVE', 'BREAK', 'OFF', 'ABSENT'];
+            return `
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
+                    ${statuses.map(stKey => {
+                        const st = STATUS_CONFIG[stKey];
+                        const stMembers = members.filter(m => m.status === stKey);
+                        return `
+                            <div class="bg-stone-200/60 dark:bg-stone-900/70 border border-stone-200 dark:border-stone-800 rounded-2xl p-3.5 flex flex-col gap-3">
+                                <div class="flex items-center justify-between px-1">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold border ${st.badgeClass}">
+                                        <span class="w-2 h-2 rounded-full ${st.dotClass}"></span>
+                                        ${st.label}
+                                    </span>
+                                    <span class="text-xs font-black text-stone-600 dark:text-stone-300">${stMembers.length}</span>
+                                </div>
+                                <div class="space-y-2.5 flex-1">
+                                    ${stMembers.length > 0 ? stMembers.map(m => renderCompactKanbanCard(m)).join('') : `
+                                        <div class="py-8 text-center text-xs text-stone-400 border border-dashed border-stone-300 dark:border-stone-800 rounded-xl">
+                                            Ninguém em ${st.shortLabel}
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderCompactKanbanCard(member) {
+            const st = STATUS_CONFIG[member.status];
+            const meta = getStationMeta(member.area);
+            return `
+                <div class="bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 ${st.borderClass} rounded-xl p-3 shadow-xs space-y-2">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <div class="font-extrabold text-xs sm:text-sm text-mcgraphite dark:text-white truncate">${escapeHtml(member.name)}</div>
+                            <div class="text-[11px] text-stone-500 dark:text-stone-400 truncate">${escapeHtml(member.role)} • <strong>${meta.emoji} ${escapeHtml(member.area)}</strong></div>
+                        </div>
+                        ${member.status === 'BREAK' && member.breakStart ? `
+                            <span data-break-badge class="font-mono text-[11px] px-1.5 py-0.5 rounded bg-mcyellow/25 text-amber-800 dark:text-mcyellow font-bold shrink-0">
+                                <span data-break-start="${member.breakStart}">00:00</span>
+                            </span>
+                        ` : ''}
+                    </div>
+                    <div class="grid grid-cols-4 gap-1 pt-1">
+                        ${renderStatusButtons(member)}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Visão Lista Compacta
+        function renderMemberListView(members) {
+            return `
+                <div class="bg-white dark:bg-mcgraphite border border-stone-200 dark:border-stone-800 rounded-2xl overflow-hidden shadow-sm animate-fade-in">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-800/60 text-[11px] font-black uppercase tracking-wider text-stone-500 dark:text-stone-400">
+                                    <th class="py-3 px-4">Colaborador / Cargo</th>
+                                    <th class="py-3 px-4">Status Atual</th>
+                                    <th class="py-3 px-4">Posto McDonald's</th>
+                                    <th class="py-3 px-4">Troca Rápida</th>
+                                    <th class="py-3 px-4 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-stone-200/70 dark:divide-stone-800 text-sm">
+                                ${members.map(member => {
+                                    const st = STATUS_CONFIG[member.status];
+                                    const areaOptions = state.areas.map(a => {
+                                        const meta = getStationMeta(a);
+                                        return `<option value="${escapeHtml(a)}" ${a === member.area ? 'selected' : ''}>${meta.emoji} ${escapeHtml(a)}</option>`;
+                                    }).join('');
+                                    return `
+                                        <tr class="hover:bg-stone-50/80 dark:hover:bg-stone-800/40 transition">
+                                            <td class="py-3 px-4">
+                                                <div class="font-extrabold text-mcgraphite dark:text-white">${escapeHtml(member.name)}</div>
+                                                <div class="text-xs text-stone-500 dark:text-stone-400">${escapeHtml(member.role)} ${member.note ? `• <span class="italic">${escapeHtml(member.note)}</span>` : ''}</div>
+                                            </td>
+                                            <td class="py-3 px-4 whitespace-nowrap">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${st.badgeClass}">
+                                                        <span class="w-2 h-2 rounded-full ${st.dotClass}"></span>
+                                                        ${st.shortLabel}
+                                                    </span>
+                                                    ${member.status === 'BREAK' && member.breakStart ? `
+                                                        <span data-break-badge class="font-mono text-xs px-2 py-0.5 rounded bg-mcyellow/20 text-amber-800 dark:text-mcyellow font-bold">
+                                                            <span data-break-start="${member.breakStart}">00:00</span>
+                                                        </span>
+                                                    ` : ''}
+                                                </div>
+                                            </td>
+                                            <td class="py-3 px-4">
+                                                <select
+                                                    onchange="changeMemberArea('${member.id}', this.value)"
+                                                    class="px-2.5 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs font-bold text-mcgraphite dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-mcyellow"
+                                                >
+                                                    ${areaOptions}
+                                                </select>
+                                            </td>
+                                            <td class="py-3 px-4">
+                                                <div class="inline-grid grid-cols-4 gap-1 min-w-[210px]">
+                                                    ${renderStatusButtons(member)}
+                                                </div>
+                                            </td>
+                                            <td class="py-3 px-4 text-right whitespace-nowrap">
+                                                <button onclick="openMemberModal('${member.id}')" class="p-1.5 rounded-lg text-stone-400 hover:text-mcyellow transition" title="Editar">
+                                                    <i data-lucide="pencil" class="w-4 h-4"></i>
+                                                </button>
+                                                <button onclick="promptDeleteMember('${member.id}')" class="p-1.5 rounded-lg text-stone-400 hover:text-mcred transition" title="Remover">
+                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ==========================================
+        // HISTÓRICO DE MOVIMENTAÇÕES E EXPORTAÇÃO WHATSAPP
+        // ==========================================
+        function addLog(text, type = 'info') {
+            state.logs.unshift({
+                id: 'log_' + Date.now() + Math.random(),
+                time: formatTimeShort(new Date()),
+                text,
+                type
+            });
+            if (state.logs.length > 50) state.logs.pop();
+        }
+
+        function clearLogs() {
+            state.logs = [];
+            saveStateToStorage();
+            renderActivityLogs();
+            showToast('Histórico do turno limpo.', 'dark');
+        }
+
+        function renderActivityLogs() {
+            const listEl = document.getElementById('activity-log-list');
+            if (!listEl) return;
+
+            if (state.logs.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-6 text-stone-400">Nenhuma movimentação registrada.</div>`;
+                return;
+            }
+
+            const dotColors = {
+                active: 'bg-emerald-500',
+                break: 'bg-mcyellow',
+                area: 'bg-mcred',
+                absent: 'bg-rose-600',
+                info: 'bg-stone-400'
+            };
+
+            listEl.innerHTML = state.logs.map(log => `
+                <div class="flex items-start gap-2.5 py-1.5 border-b border-stone-100 dark:border-stone-800/60 last:border-none">
+                    <span class="w-2 h-2 rounded-full mt-1.5 shrink-0 ${dotColors[log.type] || dotColors.info}"></span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-mcgraphite dark:text-stone-300 leading-snug break-words font-medium">${escapeHtml(log.text)}</p>
+                        <span class="text-[10px] font-mono text-stone-400">${escapeHtml(log.time)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function copyShiftReport() {
+            const now = new Date();
+            const active = state.members.filter(m => m.status === 'ACTIVE');
+            const onBreak = state.members.filter(m => m.status === 'BREAK');
+            const off = state.members.filter(m => m.status === 'OFF');
+            const absent = state.members.filter(m => m.status === 'ABSENT');
+
+            const stationLines = state.areas.map(area => {
+                const meta = getStationMeta(area);
+                const positioned = active.filter(m => m.area === area);
+                return `${meta.emoji} *${area}*: ${positioned.length > 0 ? positioned.map(m => `${m.name} (${m.role})`).join(', ') : '⚠️ _DESCOBERTO_'}`;
+            });
+
+            const lines = [
+                `🍔 *MAPA DE POSICIONAMENTO MCDONALD'S* 🍟`,
+                `🕒 *Turno:* ${state.currentShift} — ${now.toLocaleDateString('pt-BR')} às ${formatTimeShort(now)}`,
+                `👥 *Efetivo Total:* ${state.members.length} | ✅ *Em Posição:* ${active.length} | ☕ *Break:* ${onBreak.length}`,
+                ``,
+                `📍 *COBERTURA POR POSTO:*`,
+                ...stationLines,
+                ``,
+                `☕ *EM BREAK (${onBreak.length}):* ${onBreak.map(m => `${m.name} [${m.area}]`).join(', ') || 'Ninguém no momento'}`,
+                `🏖️ *FOLGA DSR (${off.length}):* ${off.map(m => m.name).join(', ') || 'Ninguém'}`,
+                `❌ *FALTAS (${absent.length}):* ${absent.map(m => m.name).join(', ') || 'Zero faltas'}`
+            ];
+
+            const textToCopy = lines.join('\n');
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textToCopy;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('📋 Escala do McDonald\'s copiada para o WhatsApp!', 'emerald');
+            } catch (err) {
+                showToast('Não foi possível copiar automaticamente.', 'red');
+            }
+            document.body.removeChild(tempTextArea);
+        }
+
+        // ==========================================
+        // MODAL DE CONFIRMAÇÃO E RESTAURAÇÃO
+        // ==========================================
+        let confirmCallback = null;
+
+        function openConfirmModal(title, description, onConfirm) {
+            document.getElementById('confirm-modal-title').textContent = title;
+            document.getElementById('confirm-modal-desc').textContent = description;
+            confirmCallback = onConfirm;
+
+            const actionBtn = document.getElementById('confirm-modal-action-btn');
+            actionBtn.onclick = () => {
+                if (confirmCallback) confirmCallback();
+                closeConfirmModal();
+            };
+
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            confirmCallback = null;
+        }
+
+        function openResetConfirmModal() {
+            openConfirmModal(
+                'Restaurar Escala Padrão do McDonald\'s?',
+                'Isso restaurará os 8 postos oficiais do McDonald\'s e a equipe de demonstração padrão.',
+                () => {
+                    localStorage.removeItem(STORAGE_KEYS.MEMBERS);
+                    localStorage.removeItem(STORAGE_KEYS.AREAS);
+                    localStorage.removeItem(STORAGE_KEYS.LOGS);
+                    loadStateFromStorage();
+                    renderAreaSelectors();
+                    renderAll();
+                    showToast('🍟 Escala padrão do McDonald\'s restaurada!', 'yellow');
+                }
+            );
+        }
+
+        // ==========================================
+        // TEMA E UTILITÁRIOS
+        // ==========================================
+        function initTheme() {
+            const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
+            document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+            updateThemeIcon();
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem(STORAGE_KEYS.THEME, isDark ? 'dark' : 'light');
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const isDark = document.documentElement.classList.contains('dark');
+            const iconEl = document.getElementById('theme-icon');
+            if (iconEl) {
+                iconEl.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+                lucide.createIcons();
+            }
+        }
+
+        function showToast(message, color = 'dark') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const colors = {
+                emerald: 'bg-emerald-600 text-white border-emerald-400',
+                yellow: 'bg-mcyellow text-mcgraphite font-extrabold border-amber-500',
+                red: 'bg-mcred text-white font-bold border-rose-400',
+                dark: 'bg-mcgraphite text-mcyellow font-bold border-mcyellow/50'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto px-4 py-3 rounded-xl border-2 shadow-xl text-xs sm:text-sm flex items-center justify-between gap-3 animate-fade-in ${colors[color] || colors.dark}`;
+            toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.25s ease';
+                setTimeout(() => toast.remove(), 250);
+            }, 3200);
+        }
+
+        function getInitials(name) {
+            const parts = name.trim().split(/\s+/);
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function escapeJs(str) {
+            if (!str) return '';
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
+```
