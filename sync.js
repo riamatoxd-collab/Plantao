@@ -4,10 +4,11 @@
  const CONFIG_KEY='plantao_plus_cloud_config_v12';
  const TEAM_KEY='plantao_plus_cloud_team_v12';
  const $=id=>document.getElementById(id);
+ const cloudStorage=window.PlantaoStorage||(()=>{try{return window.localStorage;}catch{return null;}})();
  let client=null,user=null,team=null,revision=null,channel=null,poller=null,pushTimer=null;
  let dirty=false,pushing=false,decisionPending=false,conflict=false,changeSequence=0,loading=false;
  const bridge=window.PlantaoBridge;
- const config=()=>{try{return JSON.parse(localStorage.getItem(CONFIG_KEY)||'null');}catch{return null;}};
+ const config=()=>{try{return JSON.parse(cloudStorage?.getItem(CONFIG_KEY)||'null');}catch{return null;}};
  function message(id,text,error=false){const el=$(id);if(!el)return;el.textContent=text||'';el.classList.toggle('error',error);el.classList.toggle('success',!error&&Boolean(text));}
  function indicator(text,mode='local'){$('cloudIndicator').textContent='● '+text;$('cloudIndicator').className='cloud-pill'+(mode==='online'?' online':mode==='error'?' error':'');$('profileSyncStatus').textContent=text;$('sidebarSyncStatus').textContent='● '+text;}
  function setViews(){
@@ -26,16 +27,33 @@
   else if(team)indicator('Online · '+team.name,'online');
   else indicator(user?'Gerente autenticado':'Modo local');
  }
+// Não carrega serviços externos antes do aplicativo local. Carregamento sob demanda
+ // evita que uma CDN lenta/inacessível mantenha os botões sem resposta.
+ let libraryPromise=null;
+ function loadSupabaseLibrary(){
+  if(window.supabase?.createClient)return Promise.resolve();
+  if(libraryPromise)return libraryPromise;
+  libraryPromise=new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+   script.async=true;
+   const timer=setTimeout(()=>{script.remove();reject(new Error('A biblioteca online demorou a responder. Confira sua conexão.'));},9000);
+   script.onload=()=>{clearTimeout(timer);window.supabase?.createClient?resolve():reject(new Error('Biblioteca Supabase não carregada.'));};
+   script.onerror=()=>{clearTimeout(timer);reject(new Error('Não foi possível carregar a biblioteca online.'));};
+   document.head.appendChild(script);
+  });
+  return libraryPromise;
+ }
  function ensureClient(){if(!client)throw new Error('Salve a conexão e faça login primeiro.');return client;}
  function resetTeam(){
   clearInterval(poller);clearTimeout(pushTimer);if(channel&&client)client.removeChannel(channel).catch(()=>{});
   channel=null;poller=null;team=null;revision=null;dirty=false;conflict=false;decisionPending=false;
-  localStorage.removeItem(TEAM_KEY);setViews();status('Sem equipe conectada. Seus dados continuam salvos neste navegador.');
+  cloudStorage?.removeItem(TEAM_KEY);setViews();status('Sem equipe conectada. Seus dados continuam salvos neste navegador.');
  }
  async function initClient(){
   const conf=config();if(!conf)return;
-  if(!window.supabase?.createClient){message('cloudConfigMessage','Biblioteca Supabase indisponível. Verifique a conexão à internet.',true);return;}
   try{
+   await loadSupabaseLibrary();
    if(!/^https:\/\/[a-z0-9.-]+\/?$/i.test(conf.url))throw new Error('A URL precisa usar HTTPS.');
    client=window.supabase.createClient(conf.url.replace(/\/$/,''),conf.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
    message('cloudConfigMessage','Servidor configurado neste aparelho.');
@@ -44,14 +62,14 @@
    if(user)await afterLogin();
   }catch(e){message('cloudConfigMessage',`Falha na configuração: ${e.message}`,true);}
  }
- async function afterLogin(){await listTeams();const preferred=localStorage.getItem(TEAM_KEY);if(preferred){const found=await membership(preferred);if(found)await chooseTeam(found);}}
+ async function afterLogin(){await listTeams();const preferred=cloudStorage?.getItem(TEAM_KEY);if(preferred){const found=await membership(preferred);if(found)await chooseTeam(found);}}
  async function membership(id){const {data,error}=await ensureClient().from('plantao_team_members').select('team_id,role').eq('team_id',id).eq('user_id',user.id).maybeSingle();if(error)throw error;if(!data)return null;const r=await client.from('plantao_teams').select('id,name').eq('id',id).single();if(r.error)throw r.error;return {...r.data,role:data.role};}
  async function listTeams(){if(!user)return;const r=await ensureClient().from('plantao_team_members').select('team_id,role').eq('user_id',user.id);if(r.error)throw r.error;const ids=(r.data||[]).map(m=>m.team_id),out=$('cloudTeamList');if(!ids.length){out.innerHTML='<p class="form-hint">Você ainda não participa de nenhuma equipe.</p>';return;}
   const t=await client.from('plantao_teams').select('id,name').in('id',ids);if(t.error)throw t.error;
   out.innerHTML=t.data.map(x=>{const row=r.data.find(m=>m.team_id===x.id);return `<div class="cloud-team-item"><div><strong>${escapeHtml(x.name)}</strong><small>${row.role==='owner'?'Administrador':'Gerente'} · ${escapeHtml(x.id.slice(0,8))}</small></div><button class="btn btn-outline btn-small" data-connect-team="${escapeHtml(x.id)}">Conectar</button></div>`;}).join('');
  }
  function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
- async function chooseTeam(t){resetTeam();team=t;localStorage.setItem(TEAM_KEY,t.id);setViews();status('Equipe escolhida. Conferindo a versão online...');
+ async function chooseTeam(t){resetTeam();team=t;cloudStorage?.setItem(TEAM_KEY,t.id);setViews();status('Equipe escolhida. Conferindo a versão online...');
   await readCloud(true);
   channel=client.channel('plantao_updates_'+t.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'plantao_snapshots',filter:'team_id=eq.'+t.id},()=>{if(!decisionPending&&!dirty&&!conflict)readCloud(false).catch(e=>status(e.message,true));}).subscribe();
   poller=setInterval(()=>{if(!decisionPending&&!dirty&&!conflict)readCloud(false).catch(e=>status(e.message,true));},12000);
@@ -99,7 +117,7 @@
  async function joinTeam(){const code=$('cloudInviteInput').value.trim();if(code.length<15)throw new Error('Informe o código completo de convite.');const r=await ensureClient().rpc('plantao_join_team',{p_code:code});if(r.error)throw r.error;await listTeams();const found=await membership(r.data);if(found)await chooseTeam(found);$('cloudInviteInput').value='';}
  function setup(){
   const conf=config();if(conf){$('cloudUrl').value=conf.url;$('cloudKey').value=conf.key;}
-  $('cloudConfigForm').addEventListener('submit',e=>{e.preventDefault();const url=$('cloudUrl').value.trim().replace(/\/$/,''),key=$('cloudKey').value.trim();if(!url.startsWith('https://')||key.length<20)return message('cloudConfigMessage','Confira a URL HTTPS e a chave pública.',true);localStorage.setItem(CONFIG_KEY,JSON.stringify({url,key}));location.reload();});
+  $('cloudConfigForm').addEventListener('submit',e=>{e.preventDefault();const url=$('cloudUrl').value.trim().replace(/\/$/,''),key=$('cloudKey').value.trim();if(!cloudStorage?.available){return message('cloudConfigMessage','Abra o site no navegador normal e permita armazenamento para configurar a conexão online.',true);}if(!url.startsWith('https://')||key.length<20)return message('cloudConfigMessage','Confira a URL HTTPS e a chave pública.',true);cloudStorage?.setItem(CONFIG_KEY,JSON.stringify({url,key}));location.reload();});
   $('cloudLoginForm').addEventListener('submit',async e=>{e.preventDefault();try{const email=$('cloudEmail').value.trim();const redirect=location.origin==='null'?undefined:location.origin+location.pathname;const options=redirect?{emailRedirectTo:redirect}:undefined;const r=await ensureClient().auth.signInWithOtp({email,options});if(r.error)throw r.error;message('cloudAuthMessage','Enviamos o link de acesso para seu e-mail. Abra o link no mesmo navegador.');}catch(err){message('cloudAuthMessage',err.message,true);}});
   $('cloudLogout').addEventListener('click',async()=>{if(client)await client.auth.signOut();resetTeam();user=null;setViews();});
   $('cloudCreateTeamForm').addEventListener('submit',async e=>{e.preventDefault();try{await createTeam();}catch(err){status('Falha ao criar equipe: '+err.message,true);}});

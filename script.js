@@ -1,6 +1,23 @@
 /* Plantão+ v1.2 — offline-first; sincronização autenticada opcional via Supabase */
 'use strict';
 const STORAGE_KEY = 'plantao_plus_versao_1'; // preserva cadastros e plantões anteriores
+// Alguns visualizadores de arquivos abrem o site em uma área isolada (sandbox),
+// na qual acessar localStorage lança SecurityError e quebrava os cliques.
+// Nesse cenário a interface continua funcionando com memória temporária.
+const safeStorage = (() => {
+  const temporary = new Map();
+  try {
+    const candidate = window.localStorage;
+    const probe = '__plantao_probe__';
+    candidate.setItem(probe, '1');
+    candidate.removeItem(probe);
+    return { available: true, getItem: key => candidate.getItem(key), setItem: (key, val) => candidate.setItem(key, val), removeItem: key => candidate.removeItem(key) };
+  } catch (err) {
+    console.warn('Armazenamento bloqueado: modo temporário sem gravação persistente.', err);
+    return { available: false, getItem: key => temporary.get(key) ?? null, setItem: (key, val) => temporary.set(key, String(val)), removeItem: key => temporary.delete(key) };
+  }
+})();
+window.PlantaoStorage=safeStorage;
 const STATIONS = [
   'Chapa','Linha / Montagem','McFritas','Produtos fritos','Balcão',
   'Drive-thru','Bebidas e sobremesas','Salão','Delivery','LOPE','Gerência','Apoio'
@@ -97,11 +114,11 @@ function seedState(){
  const assignments=[['Ana Costa','Balcão'],['Bruno Lima','Chapa'],['Carla Ferreira','Linha / Montagem'],['Diego Nunes','McFritas'],['Elisa Rocha','Gerência'],['Felipe Martins','Drive-thru']].map(([name,station])=>({id:uid(),shiftId:today.id,employeeId:employees.find(e=>e.name===name).id,station}));
  return {version:3,breaks:[],demo:true,theme:'light',page:'dashboard',currentShiftId:today.id,employees,shifts:[today,yesterday,tomorrow],assignments,attendance:[{id:uid(),shiftId:today.id,employeeId:employees.find(e=>e.name==='Bruno Lima').id,status:'ja_brekou',updatedAt:new Date().toISOString()},{id:uid(),shiftId:today.id,employeeId:employees.find(e=>e.name==='Gabriela Souza').id,status:'em_break',updatedAt:new Date().toISOString()},{id:uid(),shiftId:today.id,employeeId:employees.find(e=>e.name==='Henrique Alves').id,status:'folga',updatedAt:new Date().toISOString()},{id:uid(),shiftId:today.id,employeeId:employees.find(e=>e.name==='Juliana Melo').id,status:'faltou',updatedAt:new Date().toISOString()}],events:[{id:uid(),shiftId:today.id,type:'Operação',text:'Conferência inicial de equipamentos concluída. Acompanhar reposição no horário de maior movimento.',createdAt:new Date().toISOString()}]};
 }
-function loadState(){try{const data=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(data&&Array.isArray(data.shifts)&&Array.isArray(data.employees)&&Array.isArray(data.assignments)&&Array.isArray(data.events)){data.attendance=Array.isArray(data.attendance)?data.attendance:[];data.breaks=Array.isArray(data.breaks)?data.breaks:[];data.employees.forEach(e=>{if(!Array.isArray(e.skills))e.skills=[];});return data;}}catch(err){console.warn('Falha ao carregar os dados locais.',err);}return seedState();}
+function loadState(){try{const data=JSON.parse(safeStorage.getItem(STORAGE_KEY)||'null');if(data&&Array.isArray(data.shifts)&&Array.isArray(data.employees)&&Array.isArray(data.assignments)&&Array.isArray(data.events)){data.attendance=Array.isArray(data.attendance)?data.attendance:[];data.breaks=Array.isArray(data.breaks)?data.breaks:[];data.employees.forEach(e=>{if(!Array.isArray(e.skills))e.skills=[];});data.shifts.forEach(sh=>{if(!Array.isArray(sh.tasks))sh.tasks=makeTasks();if(typeof sh.notes!=='string')sh.notes='';});if(!Number.isFinite(Number(data.defaultBreakMinutes)))data.defaultBreakMinutes=60;return data;}}catch(err){console.warn('Falha ao carregar os dados locais.',err);}return seedState();}
 let state=loadState();
 let selectedPage=TITLES[state.page]?state.page:'dashboard';
 let toastTimeout;
-function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(err){toast('Sem espaço no armazenamento local; faça um backup.');console.error(err);}}
+function persist(){try{safeStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(err){toast('Sem espaço no armazenamento local; faça um backup.');console.error(err);}}
 function changed(){state.demo=false;persist();renderAll();window.PlantaoSync?.onLocalChange?.();}
 function getShift(){return state.shifts.find(s=>s.id===state.currentShiftId)||state.shifts[0]||null;}
 function shiftAssignments(shift=getShift()){return shift?state.assignments.filter(a=>a.shiftId===shift.id):[];}
@@ -361,8 +378,20 @@ function setupEvents(){
  });
  document.addEventListener('change',event=>{if(event.target.matches('[data-presence-employee]')){changePresence(event.target.dataset.presenceEmployee,event.target.value);return;}if(!event.target.matches('[data-task-id]'))return;const s=getShift();if(s.status==='encerrado')return;const task=s.tasks.find(t=>t.id===event.target.dataset.taskId);if(!task)return;task.done=event.target.checked;changed();});
 }
-function init(){setInterval(breakClockRefresh,15000);renderStaticIcons();$('reportMonth').value=localDay().slice(0,7);document.body.classList.toggle('light',state.theme==='light');setupEvents();renderAll();}
-document.addEventListener('DOMContentLoaded',init);
+let didInit = false;
+function init(){
+ if (didInit) return;
+ didInit = true;
+ setInterval(breakClockRefresh,15000);
+ renderStaticIcons();
+ $('reportMonth').value=localDay().slice(0,7);
+ document.body.classList.toggle('light',state.theme==='light');
+ if (!safeStorage.available) $('storageWarning').classList.remove('hidden');
+ setupEvents();
+ renderAll();
+}
+if (document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
+else init();
 
 // The optional sync module receives only domain data; page/theme settings remain private to each device.
 window.PlantaoBridge={
