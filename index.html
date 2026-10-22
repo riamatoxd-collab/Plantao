@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d1523" />
+  <meta name="description" content="Plantão+ — painel de controle e passagem de turno para operações de loja." />
+  <title>Plantão+ | Gestão de turnos</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d1523'/%3E%3Cpath d='M17 32h30M32 17v30' stroke='%2344e2bd' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Menu principal">
+      <div class="brand"><div class="brand-mark" aria-hidden="true">+</div><div><strong>plantão<span>+</span></strong><small>GESTÃO OPERACIONAL</small></div></div>
+      <div class="side-section-label">MENU PRINCIPAL</div>
+      <nav class="side-nav" aria-label="Navegação">
+        <button class="nav-link active" data-page="dashboard"><span data-icon="layout"></span> Visão geral</button>
+        <button class="nav-link" data-page="escala"><span data-icon="calendar"></span> Escala e posições</button>
+        <button class="nav-link" data-page="equipe"><span data-icon="users"></span> Colaboradores</button>
+        <button class="nav-link" data-page="checklist"><span data-icon="check-square"></span> Checklist <span class="nav-counter" id="navPending">0</span></button>
+        <button class="nav-link" data-page="passagem"><span data-icon="repeat"></span> Passagem de plantão</button>
+        <button class="nav-link" data-page="relatorios"><span data-icon="chart"></span> Relatórios</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="side-help"><div class="side-help-icon"><span data-icon="shield"></span></div><strong>Controle organizado</strong><p>Planeje turnos, acompanhe a equipe e registre o que aconteceu.</p></div>
+        <div class="local-tag"><span class="status-dot"></span> Dados salvos neste navegador</div>
+      </div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="top-left"><button class="icon-button mobile-menu" id="mobileMenu" aria-label="Abrir menu"><span data-icon="menu"></span></button><div class="breadcrumb"><span>Operação</span><span class="crumb-sep">/</span><strong id="currentPageTitle">Visão geral</strong></div></div>
+        <div class="top-actions"><span class="today-pill" id="todayLabel"></span><button class="icon-button" id="themeButton" aria-label="Alternar tema" title="Alternar tema"><span data-icon="sun"></span></button><div class="profile-chip"><span class="profile-avatar">G</span><span><strong>Gestão</strong><small>Modo local</small></span></div></div>
+      </header>
+      <main class="content">
+        <div class="context-row">
+          <div><span class="eyebrow">CONTROLE DO TURNO</span><div class="context-heading"><h1 id="mainTitle">Visão geral</h1><span class="demo-tag">VERSÃO 1.0</span></div><p id="mainSubtitle">Acompanhe tudo o que acontece na operação.</p></div>
+          <div class="context-actions"><div class="shift-picker"><span data-icon="calendar"></span><select id="shiftSelect" aria-label="Selecionar plantão"></select><span data-icon="chevron-down"></span></div><button class="btn btn-primary" id="newShiftButton"><span data-icon="plus"></span> Novo plantão</button></div>
+        </div>
+
+        <section class="page" id="page-dashboard">
+          <div class="hero"><div class="hero-copy"><div class="hero-pill"><span class="pulse-dot"></span><span id="heroShiftStatus">Plantão em andamento</span></div><h2>Seu plantão, <span>sob controle.</span></h2><p>Um só lugar para pessoas, posições, atividades e registros importantes.</p><button class="hero-action" data-go="escala">Gerenciar posições <span data-icon="arrow-right"></span></button></div><div class="hero-art" aria-hidden="true"><div class="orb orb-one"></div><div class="orb orb-two"></div><div class="floating-sheet"><span class="sheet-label">RESUMO DO PLANTÃO</span><div class="sheet-bar"><i></i><i></i><i></i></div><div class="sheet-row"><span>Equipe posicionada</span><strong id="heroAssigned">0</strong></div><div class="sheet-row"><span>Tarefas concluídas</span><strong id="heroTasks">0%</strong></div><div class="sheet-progress"><span id="heroProgressFill"></span></div></div></div></div>
+          <div class="metric-grid" id="dashboardMetrics"></div>
+          <div class="columns columns-2 dashboard-columns"><div class="panel"><div class="panel-header"><div><span class="eyebrow">ORGANIZAÇÃO</span><h3>Posicionamento da equipe</h3></div><button class="text-action" data-go="escala">Ver escala <span data-icon="arrow-up-right"></span></button></div><div id="dashPositions" class="compact-list"></div></div><div class="panel"><div class="panel-header"><div><span class="eyebrow">EXECUÇÃO</span><h3>Progresso operacional</h3></div><button class="text-action" data-go="checklist">Ver checklist <span data-icon="arrow-up-right"></span></button></div><div id="dashChecklist"></div></div></div>
+          <div class="panel"><div class="panel-header"><div><span class="eyebrow">HISTÓRICO RECENTE</span><h3>Últimos registros</h3></div><button class="text-action" data-go="passagem">Adicionar registro <span data-icon="plus"></span></button></div><div id="dashEvents" class="events-inline"></div></div>
+        </section>
+
+        <section class="page hidden" id="page-escala"><div class="page-banner"><div><span class="eyebrow">PLANEJAMENTO DIÁRIO</span><h2>Equipe e estações</h2><p>Distribua as pessoas, evite duplicidades e organize o fluxo da operação.</p></div><button class="btn btn-primary" id="newAssignmentButton"><span data-icon="plus"></span> Posicionar pessoa</button></div><div id="shiftDetails" class="shift-details"></div><div class="section-heading"><div><h3>Mapa de posições</h3><p id="stationsSubtitle">Distribuição dos colaboradores por estação</p></div></div><div id="stationGrid" class="station-grid"></div><div class="panel spaced"><div class="panel-header"><div><span class="eyebrow">DISPONIBILIDADE</span><h3>Pessoas sem posição neste plantão</h3></div></div><div id="unassignedEmployees" class="people-chips"></div></div></section>
+
+        <section class="page hidden" id="page-equipe"><div class="page-banner"><div><span class="eyebrow">GESTÃO DE PESSOAS</span><h2>Colaboradores</h2><p>Cadastre, edite e acompanhe os integrantes da equipe.</p></div><button class="btn btn-primary" id="newEmployeeButton"><span data-icon="plus"></span> Novo colaborador</button></div><div class="filter-bar"><div class="search-wrap"><span data-icon="search"></span><input id="employeeSearch" type="search" placeholder="Buscar por nome ou função..." aria-label="Buscar colaboradores"></div><select id="employeeStatusFilter" aria-label="Filtrar por situação"><option value="ativos">Somente ativos</option><option value="todos">Todos</option><option value="inativos">Somente inativos</option></select><span id="employeeCount" class="filter-count"></span></div><div class="employee-grid" id="employeeGrid"></div></section>
+
+        <section class="page hidden" id="page-checklist"><div class="page-banner"><div><span class="eyebrow">PADRÃO DE EXECUÇÃO</span><h2>Checklist operacional</h2><p>Não deixe tarefas importantes passarem despercebidas.</p></div><button class="btn btn-primary" id="newTaskButton"><span data-icon="plus"></span> Adicionar tarefa</button></div><div class="panel progress-panel"><div class="progress-summary"><div><span class="eyebrow">PROGRESSO DO PLANTÃO</span><h3 id="checklistSummary">0 de 0 atividades</h3><p id="checklistProgressText">Comece pelas atividades de pré-plantão.</p></div><div class="ring" id="progressRing"><span id="progressRingText">0%</span></div></div><div class="progress-track"><span id="mainProgressFill"></span></div></div><div class="checklist-columns" id="checklistPhases"></div></section>
+
+        <section class="page hidden" id="page-passagem"><div class="page-banner"><div><span class="eyebrow">COMUNICAÇÃO ENTRE TURNOS</span><h2>Passagem de plantão</h2><p>Registre ocorrências, pontos de atenção e orientações para a próxima equipe.</p></div><button class="btn btn-outline" id="copyHandoffTop"><span data-icon="copy"></span> Copiar resumo</button></div><div class="columns columns-2"><div class="panel"><div class="panel-header"><div><span class="eyebrow">LIVRO DE OCORRÊNCIAS</span><h3>Novo registro</h3></div></div><form id="eventForm" class="stack-form"><label>Categoria<select name="type" required><option>Operação</option><option>Pessoas</option><option>Equipamentos</option><option>Estoque</option><option>Observação</option></select></label><label>Descrição<textarea name="text" required maxlength="600" rows="4" placeholder="Descreva o que aconteceu e o que precisa ser acompanhado..."></textarea></label><button class="btn btn-primary" type="submit"><span data-icon="plus"></span> Registrar ocorrência</button></form></div><div class="panel"><div class="panel-header"><div><span class="eyebrow">ORIENTAÇÕES</span><h3>Recado para o próximo turno</h3></div></div><label class="standalone-label" for="handoffNotes">Anotações e prioridades</label><textarea id="handoffNotes" rows="7" maxlength="2000" placeholder="Ex.: conferir manutenção do equipamento, verificar falta de produto, reforçar posição no horário de pico..."></textarea><div class="note-footer"><span>Fica salvo no plantão selecionado.</span><button id="saveHandoffNotes" class="btn btn-outline"><span data-icon="save"></span> Salvar recado</button></div></div></div><div class="columns columns-2 spaced"><div class="panel"><div class="panel-header"><div><span class="eyebrow">LINHA DO TEMPO</span><h3>Ocorrências registradas</h3></div></div><div id="eventTimeline" class="timeline"></div></div><div class="panel"><div class="panel-header"><div><span class="eyebrow">RELATÓRIO PRONTO</span><h3>Resumo para repassar</h3></div></div><pre class="handoff-preview" id="handoffPreview"></pre><div class="share-actions"><button id="copyHandoff" class="btn btn-primary"><span data-icon="copy"></span> Copiar texto</button><button id="shareWhatsapp" class="btn btn-outline"><span data-icon="send"></span> WhatsApp</button></div></div></div></section>
+
+        <section class="page hidden" id="page-relatorios"><div class="page-banner"><div><span class="eyebrow">VISÃO GERENCIAL</span><h2>Relatórios e histórico</h2><p>Consulte plantões anteriores e faça cópias de segurança dos dados.</p></div><button class="btn btn-primary" id="exportCsv"><span data-icon="download"></span> Exportar CSV</button></div><div class="filter-bar report-controls"><label class="inline-field">Período <input type="month" id="reportMonth"></label><div class="report-buttons"><button class="btn btn-outline" id="backupJson"><span data-icon="download"></span> Backup JSON</button><label class="btn btn-outline file-button"><span data-icon="upload"></span> Importar backup <input type="file" id="importJson" accept=".json,application/json" hidden></label></div></div><div id="reportMetrics" class="metric-grid"></div><div class="panel"><div class="panel-header"><div><span class="eyebrow">ARQUIVO DE PLANTÕES</span><h3>Histórico de turnos</h3></div></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Data</th><th>Turno</th><th>Responsável</th><th>Pessoas</th><th>Checklist</th><th>Situação</th><th></th></tr></thead><tbody id="reportRows"></tbody></table></div></div><p class="privacy-note"><span data-icon="info"></span> Nesta versão, o armazenamento é local. Para uma equipe usar o sistema simultaneamente em vários aparelhos será necessário conectar um banco de dados e autenticação.</p></section>
+      </main>
+    </div>
+  </div>
+  <div id="modalBackdrop" class="modal-backdrop hidden" role="presentation"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-heading"><div><span class="eyebrow" id="modalEyebrow">CADASTRO</span><h2 id="modalTitle">Novo registro</h2></div><button id="closeModal" class="icon-button" aria-label="Fechar"><span data-icon="x"></span></button></div><div id="modalBody"></div></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
