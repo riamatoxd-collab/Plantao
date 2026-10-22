@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0d1523" />
+  <meta name="theme-color" content="#DA291C" />
   <meta name="description" content="Plantão+ — painel de controle e passagem de turno para operações de loja." />
-  <title>Plantão+ | Gestão de turnos</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d1523'/%3E%3Cpath d='M17 32h30M32 17v30' stroke='%2344e2bd' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <title>Plantão+ | Gestão de Plantões</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23DA291C'/%3E%3Cpath d='M17 32h30M32 17v30' stroke='%23FFC72C' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -40,18 +40,21 @@
       </header>
       <main class="content">
         <div class="context-row">
-          <div><span class="eyebrow">CONTROLE DO TURNO</span><div class="context-heading"><h1 id="mainTitle">Visão geral</h1><span class="demo-tag">VERSÃO 1.0</span></div><p id="mainSubtitle">Acompanhe tudo o que acontece na operação.</p></div>
+          <div><span class="eyebrow">CONTROLE DO TURNO</span><div class="context-heading"><h1 id="mainTitle">Visão geral</h1><span class="demo-tag">VERSÃO 1.1</span></div><p id="mainSubtitle">Acompanhe tudo o que acontece na operação.</p></div>
           <div class="context-actions"><div class="shift-picker"><span data-icon="calendar"></span><select id="shiftSelect" aria-label="Selecionar plantão"></select><span data-icon="chevron-down"></span></div><button class="btn btn-primary" id="newShiftButton"><span data-icon="plus"></span> Novo plantão</button></div>
         </div>
 
         <section class="page" id="page-dashboard">
           <div class="hero"><div class="hero-copy"><div class="hero-pill"><span class="pulse-dot"></span><span id="heroShiftStatus">Plantão em andamento</span></div><h2>Seu plantão, <span>sob controle.</span></h2><p>Um só lugar para pessoas, posições, atividades e registros importantes.</p><button class="hero-action" data-go="escala">Gerenciar posições <span data-icon="arrow-right"></span></button></div><div class="hero-art" aria-hidden="true"><div class="orb orb-one"></div><div class="orb orb-two"></div><div class="floating-sheet"><span class="sheet-label">RESUMO DO PLANTÃO</span><div class="sheet-bar"><i></i><i></i><i></i></div><div class="sheet-row"><span>Equipe posicionada</span><strong id="heroAssigned">0</strong></div><div class="sheet-row"><span>Tarefas concluídas</span><strong id="heroTasks">0%</strong></div><div class="sheet-progress"><span id="heroProgressFill"></span></div></div></div></div>
           <div class="metric-grid" id="dashboardMetrics"></div>
+          <div class="panel attendance-dashboard-panel"><div class="panel-header"><div><span class="eyebrow">SITUAÇÃO DA EQUIPE</span><h3>Breaks e presenças do plantão</h3></div><button class="text-action" data-go="escala">Gerenciar status <span data-icon="arrow-up-right"></span></button></div><div class="attendance-summary" id="dashAttendanceSummary"></div></div>
           <div class="columns columns-2 dashboard-columns"><div class="panel"><div class="panel-header"><div><span class="eyebrow">ORGANIZAÇÃO</span><h3>Posicionamento da equipe</h3></div><button class="text-action" data-go="escala">Ver escala <span data-icon="arrow-up-right"></span></button></div><div id="dashPositions" class="compact-list"></div></div><div class="panel"><div class="panel-header"><div><span class="eyebrow">EXECUÇÃO</span><h3>Progresso operacional</h3></div><button class="text-action" data-go="checklist">Ver checklist <span data-icon="arrow-up-right"></span></button></div><div id="dashChecklist"></div></div></div>
           <div class="panel"><div class="panel-header"><div><span class="eyebrow">HISTÓRICO RECENTE</span><h3>Últimos registros</h3></div><button class="text-action" data-go="passagem">Adicionar registro <span data-icon="plus"></span></button></div><div id="dashEvents" class="events-inline"></div></div>
         </section>
 
-        <section class="page hidden" id="page-escala"><div class="page-banner"><div><span class="eyebrow">PLANEJAMENTO DIÁRIO</span><h2>Equipe e estações</h2><p>Distribua as pessoas, evite duplicidades e organize o fluxo da operação.</p></div><button class="btn btn-primary" id="newAssignmentButton"><span data-icon="plus"></span> Posicionar pessoa</button></div><div id="shiftDetails" class="shift-details"></div><div class="section-heading"><div><h3>Mapa de posições</h3><p id="stationsSubtitle">Distribuição dos colaboradores por estação</p></div></div><div id="stationGrid" class="station-grid"></div><div class="panel spaced"><div class="panel-header"><div><span class="eyebrow">DISPONIBILIDADE</span><h3>Pessoas sem posição neste plantão</h3></div></div><div id="unassignedEmployees" class="people-chips"></div></div></section>
+        <section class="page hidden" id="page-escala"><div class="page-banner"><div><span class="eyebrow">PLANEJAMENTO DIÁRIO</span><h2>Equipe e estações</h2><p>Distribua as pessoas, evite duplicidades e organize o fluxo da operação.</p></div><button class="btn btn-primary" id="newAssignmentButton"><span data-icon="plus"></span> Posicionar pessoa</button></div><div id="shiftDetails" class="shift-details"></div>
+          <div class="panel attendance-panel spaced"><div class="panel-header"><div><span class="eyebrow">CONTROLE DE PESSOAS</span><h3>Breaks, faltas e folgas</h3><p class="attendance-help">Altere o status de cada colaborador. Faltas e folgas liberam a posição automaticamente.</p></div></div><div id="attendanceSummary" class="attendance-summary"></div><div id="attendanceRoster" class="attendance-roster"></div></div>
+          <div class="section-heading"><div><h3>Mapa de posições</h3><p id="stationsSubtitle">Distribuição dos colaboradores por estação</p></div></div><div id="stationGrid" class="station-grid"></div><div class="panel spaced"><div class="panel-header"><div><span class="eyebrow">DISPONIBILIDADE</span><h3>Disponíveis para posicionamento</h3></div></div><div id="unassignedEmployees" class="people-chips"></div></div></section>
 
         <section class="page hidden" id="page-equipe"><div class="page-banner"><div><span class="eyebrow">GESTÃO DE PESSOAS</span><h2>Colaboradores</h2><p>Cadastre, edite e acompanhe os integrantes da equipe.</p></div><button class="btn btn-primary" id="newEmployeeButton"><span data-icon="plus"></span> Novo colaborador</button></div><div class="filter-bar"><div class="search-wrap"><span data-icon="search"></span><input id="employeeSearch" type="search" placeholder="Buscar por nome ou função..." aria-label="Buscar colaboradores"></div><select id="employeeStatusFilter" aria-label="Filtrar por situação"><option value="ativos">Somente ativos</option><option value="todos">Todos</option><option value="inativos">Somente inativos</option></select><span id="employeeCount" class="filter-count"></span></div><div class="employee-grid" id="employeeGrid"></div></section>
 
